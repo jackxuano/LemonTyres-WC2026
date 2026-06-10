@@ -50,6 +50,7 @@ async function loadData() {
     processMatches();
     renderStandings();
     renderFixtures();
+    renderLiveBanner();
     document.getElementById('last-updated').textContent =
       'Updated ' + new Date().toLocaleTimeString('en-MY', { timeZone:'Asia/Kuala_Lumpur', hour:'2-digit', minute:'2-digit' }) + ' MYT';
   } catch (e) {
@@ -121,14 +122,19 @@ function fmt(n) { return Number.isInteger(n) ? n : n.toFixed(1); }
 
 // ---- HERO GRID ----
 function renderHeroGrid() {
-  const grid = document.getElementById('hero-grid');
-  grid.innerHTML = '';
   const heroMap = {};
   PLAYERS.forEach(p => {
     if (!heroMap[p.hero]) heroMap[p.hero] = { ...p, owners: [p.name] };
     else heroMap[p.hero].owners.push(p.name);
   });
-  Object.values(heroMap).sort((a,b) => b.heroGoals - a.heroGoals).forEach(h => {
+  const heroes = Object.values(heroMap).sort((a,b) => b.heroGoals - a.heroGoals);
+
+  renderHeroPodium(heroes);
+
+  // Full grid below the podium
+  const grid = document.getElementById('hero-grid');
+  grid.innerHTML = '';
+  heroes.forEach(h => {
     const pts = calcHeroPoints(h);
     const mul = h.isCR7 ? '×1.5' : !h.heroTop10 ? '×2' : '×1';
     const card = document.createElement('div');
@@ -142,6 +148,113 @@ function renderHeroGrid() {
     `;
     grid.appendChild(card);
   });
+}
+
+// ---- HERO PODIUM (top 3 scorers with photos) ----
+function renderHeroPodium(heroes) {
+  const podium = document.getElementById('hero-podium');
+  if (!podium) return;
+
+  // Only show podium once someone has actually scored
+  const scorers = heroes.filter(h => h.heroGoals > 0);
+  if (scorers.length === 0) {
+    podium.innerHTML = '<p class="podium-empty">No goals yet — podium unlocks at first hero goal ⚽</p>';
+    return;
+  }
+
+  const top3 = scorers.slice(0, 3);
+  // Display order: 2nd, 1st, 3rd (classic podium shape)
+  const order = [top3[1], top3[0], top3[2]];
+  const placeClass = ['silver', 'gold', 'bronze'];
+  const placeNum = ['2', '1', '3'];
+  const heights = ['mid', 'tall', 'short'];
+
+  podium.innerHTML = '';
+  order.forEach((h, idx) => {
+    if (!h) return; // fewer than 3 scorers
+    const pts = calcHeroPoints(h);
+    const step = document.createElement('div');
+    step.className = `podium-step ${heights[idx]}`;
+    step.innerHTML = `
+      <div class="podium-avatar ${placeClass[idx]}">
+        <span class="podium-initials">${h.heroInitials}</span>
+      </div>
+      <div class="podium-name">${h.hero}</div>
+      <div class="podium-owner">${h.owners.join(', ')}</div>
+      <div class="podium-block ${placeClass[idx]}">
+        <span class="podium-rank">${placeNum[idx]}</span>
+        <span class="podium-goals">${h.heroGoals} ⚽</span>
+        <span class="podium-pts">${fmt(pts)} pts</span>
+      </div>
+    `;
+    podium.appendChild(step);
+
+    // Load photo into podium avatar
+    const av = step.querySelector('.podium-avatar');
+    const ini = step.querySelector('.podium-initials');
+    const img = new Image();
+    img.onload = () => { ini.style.display = 'none'; img.className = 'podium-avatar-img'; av.appendChild(img); };
+    img.onerror = () => { ini.style.display = ''; };
+    img.src = h.heroImg;
+    img.alt = h.hero;
+  });
+}
+
+// ---- LIVE NOW BANNER ----
+// openfootball API has no live flag, so we infer: a match is "ON NOW" if the
+// current time is between kickoff and kickoff + 2h05m AND no final score yet.
+function renderLiveBanner() {
+  const banner = document.getElementById('live-banner');
+  if (!banner) return;
+
+  const now = Date.now();
+  const MATCH_WINDOW = 125 * 60 * 1000; // 2h05m
+
+  const liveMatches = [];
+  allMatches.forEach(m => {
+    if (m.score && m.score.ft) return; // already finished
+    const ko = matchKickoffMs(m.date, m.time);
+    if (ko === null) return;
+    if (now >= ko && now <= ko + MATCH_WINDOW) {
+      // Which participants have a team in this match?
+      const involved = PLAYERS.filter(p =>
+        teamsMatch(p.teamCode, m.team1) || teamsMatch(p.teamCode, m.team2)
+      );
+      if (involved.length > 0) {
+        liveMatches.push({ m, involved });
+      }
+    }
+  });
+
+  if (liveMatches.length === 0) {
+    banner.style.display = 'none';
+    return;
+  }
+
+  banner.style.display = 'block';
+  banner.innerHTML = liveMatches.map(({ m, involved }) => {
+    // Dedupe player names
+    const names = [...new Set(involved.map(p => p.name))].join(' & ');
+    return `
+      <div class="live-row">
+        <span class="live-dot"></span>
+        <span class="live-tag">ON NOW</span>
+        <span class="live-match">${m.team1} vs ${m.team2}</span>
+        <span class="live-players">${names} playing</span>
+      </div>
+    `;
+  }).join('');
+}
+
+// Get kickoff time in ms (UTC) from API date + "13:00 UTC-6" format
+function matchKickoffMs(dateStr, timeStr) {
+  try {
+    const match = timeStr && timeStr.match(/(\d{1,2}):(\d{2})\s*UTC([+-]\d+)/);
+    if (!match) return null;
+    const [y, mo, d] = dateStr.split('-').map(Number);
+    const h = parseInt(match[1]), mi = parseInt(match[2]), offset = parseInt(match[3]);
+    return Date.UTC(y, mo - 1, d, h - offset, mi);
+  } catch { return null; }
 }
 
 // ---- RENDER PLAYER CARDS ----
@@ -281,3 +394,8 @@ function getMYTDate(dateStr, timeStr) {
 // ---- INIT ----
 renderPlayers();
 loadData();
+
+// Re-check the live banner every minute (matches start/end without a data reload)
+setInterval(renderLiveBanner, 60 * 1000);
+// Auto-refresh full data every 5 minutes so scores update without manual refresh
+setInterval(loadData, 5 * 60 * 1000);

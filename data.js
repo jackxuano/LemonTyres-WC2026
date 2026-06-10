@@ -118,6 +118,14 @@ const PLAYERS = [
     heroImg: 'img/mbappe.jpg',
     heroInitials: 'KM',
   },
+  {
+    name: 'Art',
+    team: 'Portugal', teamCode: 'Portugal', flag: '🇵🇹', rank: 5, cls: 'A',
+    hero: 'Kylian Mbappé', heroNation: 'France', heroTop10: true, isCR7: false,
+    heroGoals: 0,
+    heroImg: 'img/mbappe.jpg',
+    heroInitials: 'KM',
+  },
 ];
 
 // ============================================================
