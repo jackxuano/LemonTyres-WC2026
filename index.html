@@ -23,19 +23,18 @@
       </div>
     </div>
 
-    <!-- NAV TABS -->
+    <!-- NAV TABS — 3 tabs now, Rules merged into Squad Book -->
     <nav class="tab-nav">
-      <button class="tab-btn active" data-tab="standings">Standings</button>
-      <button class="tab-btn" data-tab="players">Players</button>
-      <button class="tab-btn" data-tab="fixtures">Fixtures</button>
-      <button class="tab-btn" data-tab="rules">Rules</button>
+      <button class="tab-btn active" data-tab="standings">⚡ Standings</button>
+      <button class="tab-btn" data-tab="players">📋 Squad Book</button>
+      <button class="tab-btn" data-tab="fixtures">📅 Match Days</button>
     </nav>
   </header>
 
   <!-- COUNTDOWN + REG BAR -->
   <div class="countdown-bar">
-    <div class="countdown-inner" id="countdown-inner">
-      <span class="cd-label" id="cd-label">First Match — Mexico vs South Africa</span>
+    <div class="countdown-inner">
+      <span class="cd-label" id="cd-label">First Whistle — Mexico vs South Africa</span>
       <div class="cd-units">
         <div class="cd-unit"><span class="cd-num" id="cd-d">00</span><span class="cd-lbl">Days</span></div>
         <span class="cd-sep">:</span>
@@ -45,12 +44,12 @@
         <span class="cd-sep">:</span>
         <div class="cd-unit"><span class="cd-num" id="cd-s">00</span><span class="cd-lbl">Sec</span></div>
       </div>
-      <span class="cd-tz">Kickoff: 12 Jun 2026 · 08:00 MYT</span>
+      <span class="cd-tz">⏰ Fri 12 Jun 2026 · 3:00 AM MYT</span>
     </div>
   </div>
   <div class="reg-bar">
     <span>Registration closed · 23:59 MYT, 11 Jun 2026</span>
-    <span class="reg-count" id="player-count">12 players registered</span>
+    <span class="reg-count">12 players registered</span>
   </div>
 
   <!-- MAIN CONTENT -->
@@ -60,7 +59,7 @@
     <section class="tab-panel active" id="tab-standings">
       <div class="section-header">
         <h2 class="section-title">Live Standings</h2>
-        <button class="refresh-btn" id="refresh-btn" onclick="loadData()">↻ Refresh</button>
+        <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
       </div>
       <div class="loading-msg" id="standings-loading">Loading scores…</div>
       <div class="table-wrap" id="standings-table" style="display:none">
@@ -70,9 +69,9 @@
               <th>#</th>
               <th>Player</th>
               <th>Team</th>
-              <th class="hide-sm">Class</th>
-              <th>Team Pts</th>
-              <th>Hero Pts</th>
+              <th class="hide-sm">Cls</th>
+              <th>⚽ Team</th>
+              <th>🦸 Hero</th>
               <th class="total-col">Total</th>
             </tr>
           </thead>
@@ -81,27 +80,20 @@
       </div>
       <p class="last-updated" id="last-updated"></p>
 
-      <!-- HERO LEADERBOARD -->
       <h2 class="section-title" style="margin-top:2rem">Hero Goalscorers</h2>
       <div class="hero-grid" id="hero-grid"></div>
     </section>
 
-    <!-- TAB: PLAYERS -->
+    <!-- TAB: SQUAD BOOK (Players + Rules) -->
     <section class="tab-panel" id="tab-players">
-      <h2 class="section-title">The 11 Players</h2>
+
+      <h2 class="section-title">The 12 Players</h2>
       <div class="player-grid" id="player-grid"></div>
-    </section>
 
-    <!-- TAB: FIXTURES -->
-    <section class="tab-panel" id="tab-fixtures">
-      <h2 class="section-title">Team Fixtures</h2>
-      <div class="loading-msg" id="fixtures-loading">Loading fixtures…</div>
-      <div id="fixtures-content"></div>
-    </section>
-
-    <!-- TAB: RULES -->
-    <section class="tab-panel" id="tab-rules">
-      <h2 class="section-title">Scoring Rules</h2>
+      <!-- RULES SECTION BELOW PLAYERS -->
+      <div class="rules-divider">
+        <span class="rules-divider-label">📖 The Rulebook</span>
+      </div>
       <div class="rules-wrap">
         <div class="rules-group">
           <h3 class="rules-group-title">Team Points</h3>
@@ -132,26 +124,33 @@
         </div>
         <div class="rules-group">
           <h3 class="rules-group-title">Team Classifications</h3>
-          <div class="rule-row"><span>Portugal #5</span><span class="rule-val cls-a">Class A</span></div>
           <div class="rule-row"><span>Spain #2</span><span class="rule-val cls-a">Class A</span></div>
           <div class="rule-row"><span>Argentina #3</span><span class="rule-val cls-a">Class A</span></div>
           <div class="rule-row"><span>England #4</span><span class="rule-val cls-a">Class A</span></div>
-          <div class="rule-row"><span>Netherlands #7</span><span class="rule-val cls-a">Class A</span></div>
-          <div class="rule-row"><span>Croatia #10</span><span class="rule-val cls-a">Class A</span></div>
+          <div class="rule-row"><span>Portugal #5</span><span class="rule-val cls-a">Class A</span></div>
           <div class="rule-row"><span>Brazil #6</span><span class="rule-val cls-a">Class A</span></div>
-          <div class="rule-row"><span>Iran #21</span><span class="rule-val cls-b">Class B</span></div>
+          <div class="rule-row"><span>Netherlands #8</span><span class="rule-val cls-a">Class A</span></div>
+          <div class="rule-row"><span>Croatia #11</span><span class="rule-val cls-b">Class B</span></div>
           <div class="rule-row"><span>Japan #18</span><span class="rule-val cls-b">Class B</span></div>
+          <div class="rule-row"><span>Iran #21</span><span class="rule-val cls-b">Class B</span></div>
           <div class="rule-row"><span>Sweden #38</span><span class="rule-val cls-c">Class C</span></div>
           <div class="rule-row"><span>Bosnia #65</span><span class="rule-val cls-d">Class D</span></div>
         </div>
       </div>
     </section>
 
+    <!-- TAB: MATCH DAYS -->
+    <section class="tab-panel" id="tab-fixtures">
+      <h2 class="section-title">Match Days</h2>
+      <div class="loading-msg" id="fixtures-loading">Loading fixtures…</div>
+      <div id="fixtures-content"></div>
+    </section>
+
   </main>
 
   <footer class="site-footer">
     <p>Lemon Tyres FC · Est. 2020 · WC 2026 Fantasy</p>
-    <p class="footer-sub">Data: openfootball/worldcup · Scores updated manually during matches</p>
+    <p class="footer-sub">Standings auto-calculated · Hero goals updated manually · All times MYT</p>
   </footer>
 
   <script src="data.js"></script>
