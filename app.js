@@ -388,9 +388,7 @@ function renderFixtures() {
   const container = document.getElementById('fixtures-content');
   container.innerHTML = '';
 
-  const relevant = allMatches.filter(m =>
-    PLAYERS.some(p => teamsMatch(p.teamCode, m.team1) || teamsMatch(p.teamCode, m.team2))
-  );
+  const relevant = allMatches.slice();
   if (!relevant.length) {
     container.innerHTML = '<p class="loading-msg">No fixture data available yet.</p>';
     return;
