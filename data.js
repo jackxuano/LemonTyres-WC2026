@@ -132,7 +132,7 @@ const PLAYERS = [
     team: 'Italy (invalid)', teamCode: 'Italy', flag: '🇮🇹', rank: 0, cls: 'A',
     hero: 'Agüero (retired)', heroNation: 'Argentina', heroTop10: true, isCR7: false,
     heroGoals: 0,
-    heroImg: 'img/aguero.jpg',
+    heroImg: 'img/joker.jpg',
     heroInitials: 'SA',
   },
   {
