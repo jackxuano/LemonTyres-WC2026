@@ -28,6 +28,7 @@
       <button class="tab-btn active" data-tab="standings">⚡ Standings</button>
       <button class="tab-btn" data-tab="players">📋 Squad Book</button>
       <button class="tab-btn" data-tab="fixtures">📅 Match Days</button>
+      <button class="tab-btn" data-tab="game">🎮 Lemon-Timbang</button>
     </nav>
   </header>
 
@@ -150,12 +151,50 @@
       <div id="fixtures-content"></div>
     </section>
 
+    <!-- TAB: LEMON-TIMBANG GAME -->
+    <section class="tab-panel" id="tab-game">
+      <h2 class="section-title">Lemon-Timbang 🍋</h2>
+      <p class="game-tagline">Tap the lemon to keep it up. Don't let it drop. Each touch = 1 point.</p>
+
+      <div class="game-wrap">
+        <div class="game-hud">
+          <span class="game-score-label">SCORE</span>
+          <span class="game-score" id="game-score">0</span>
+          <span class="game-best" id="game-best"></span>
+        </div>
+        <canvas id="game-canvas" width="360" height="480"></canvas>
+        <div class="game-overlay" id="game-overlay">
+          <div class="game-overlay-inner">
+            <div class="game-overlay-title" id="overlay-title">READY?</div>
+            <div class="game-overlay-sub" id="overlay-sub">Tap to start juggling</div>
+            <button class="game-btn" id="game-start-btn">▶ Play</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Submit score (shown after game over) -->
+      <div class="game-submit" id="game-submit" style="display:none">
+        <input type="text" id="game-name" class="game-name-input" maxlength="14" placeholder="Your name" />
+        <button class="game-btn submit" id="game-submit-btn">Save Score</button>
+        <p class="game-submit-msg" id="game-submit-msg"></p>
+      </div>
+
+      <!-- Leaderboard -->
+      <h3 class="game-lb-title">🏆 Top Jugglers</h3>
+      <div class="game-leaderboard" id="game-leaderboard">
+        <p class="game-lb-loading">Loading leaderboard…</p>
+      </div>
+    </section>
+
   </main>
 
   <footer class="site-footer">
     <p>Lemon Tyres FC · Est. 2020 · WC 2026 Fantasy</p>
     <p class="footer-sub">Standings auto-calculated · Hero goals updated manually · All times MYT</p>
   </footer>
+
+  <!-- Firebase (for shared leaderboard) -->
+  <script type="module" src="game.js"></script>
 
   <script src="data.js"></script>
   <script src="app.js"></script>

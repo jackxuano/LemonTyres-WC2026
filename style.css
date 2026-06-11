@@ -696,3 +696,166 @@ body {
 .podium-block.bronze .podium-rank { color: #CD7F32; }
 .podium-goals { font-size: 0.7rem; font-weight: 700; color: var(--text); }
 .podium-pts { font-size: 0.62rem; color: var(--yellow); font-weight: 600; }
+
+/* ======== KEEPY-UP GAME ======== */
+.game-tagline {
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  margin-bottom: 1rem;
+  line-height: 1.4;
+}
+
+.game-wrap {
+  position: relative;
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+.game-hud {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+.game-score-label {
+  font-size: 0.62rem;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+}
+.game-score {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 2.4rem;
+  color: var(--yellow);
+  line-height: 1;
+}
+.game-best {
+  font-size: 0.68rem;
+  color: var(--text-dimmer);
+  letter-spacing: 1px;
+  margin-left: 0.3rem;
+}
+
+#game-canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 12px;
+  border: 2px solid var(--border);
+  background: #0d1f0d;
+  touch-action: none;
+  cursor: pointer;
+}
+
+.game-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.6);
+  border-radius: 12px;
+}
+.game-overlay-inner { text-align: center; padding: 1rem; }
+.game-overlay-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 2rem;
+  color: var(--yellow);
+  letter-spacing: 2px;
+}
+.game-overlay-sub {
+  font-size: 0.85rem;
+  color: var(--text);
+  margin: 0.3rem 0 1rem;
+}
+.game-btn {
+  background: var(--yellow);
+  color: #111;
+  border: none;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.1rem;
+  letter-spacing: 1.5px;
+  padding: 0.6rem 1.6rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.1s, opacity 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.game-btn:active { transform: scale(0.96); }
+.game-btn.submit { font-size: 0.95rem; padding: 0.55rem 1.2rem; }
+
+.game-submit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  max-width: 360px;
+  margin: 0.85rem auto 0;
+}
+.game-name-input {
+  flex: 1;
+  min-width: 140px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.9rem;
+  padding: 0.55rem 0.75rem;
+  font-family: 'Inter', sans-serif;
+}
+.game-name-input:focus { outline: none; border-color: var(--yellow); }
+.game-submit-msg {
+  width: 100%;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin-top: 0.2rem;
+}
+
+/* leaderboard */
+.game-lb-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.2rem;
+  color: var(--yellow);
+  letter-spacing: 2px;
+  text-align: center;
+  margin: 1.75rem 0 0.75rem;
+}
+.game-leaderboard {
+  max-width: 360px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.game-lb-loading {
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  text-align: center;
+  padding: 1rem 0;
+}
+.game-lb-row {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.55rem 0.85rem;
+}
+.game-lb-row.top3 { border-color: var(--yellow-border); background: var(--yellow-dim); }
+.game-lb-rank {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.1rem;
+  color: var(--text-dim);
+  text-align: center;
+}
+.game-lb-row.top3 .game-lb-rank { font-size: 1.2rem; }
+.game-lb-name { font-weight: 600; font-size: 0.88rem; }
+.game-lb-score {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.3rem;
+  color: var(--yellow);
+}
