@@ -37,6 +37,25 @@ function updateCountdown() {
 updateCountdown();
 setInterval(updateCountdown, 1000);
 
+// ---- REGISTRATION STATUS (flips at 0000 MYT, 12 Jun 2026) ----
+// Registration closes at midnight MYT on 12 Jun = 2026-06-11T16:00:00Z
+const REG_CLOSE_UTC = new Date('2026-06-11T16:00:00Z');
+const PLAYER_TOTAL = (typeof PLAYERS !== 'undefined') ? PLAYERS.length : 17;
+function updateRegStatus() {
+  const statusEl = document.getElementById('reg-status');
+  const countEl = document.getElementById('reg-count');
+  if (!statusEl || !countEl) return;
+  if (Date.now() < REG_CLOSE_UTC) {
+    statusEl.textContent = 'Registration closes tonight · 0000 MYT, 12 Jun 2026';
+    countEl.textContent = PLAYER_TOTAL + ' lemons locked in 🍋';
+  } else {
+    statusEl.textContent = 'Registration closed · squad locked';
+    countEl.textContent = PLAYER_TOTAL + ' lemons on WC2026 🍋';
+  }
+}
+updateRegStatus();
+setInterval(updateRegStatus, 30 * 1000);
+
 // ---- LOAD DATA ----
 async function loadData() {
   document.getElementById('standings-loading').style.display = 'block';
