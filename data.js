@@ -127,13 +127,12 @@ const PLAYERS = [
     heroInitials: 'KM',
   },
   {
-    // NOTE: Italy did NOT qualify for WC2026 and Agüero is retired — pick is invalid, needs repick.
     name: 'Joker',
-    team: 'Italy (invalid)', teamCode: 'Italy', flag: '🇮🇹', rank: 0, cls: 'A',
-    hero: 'Agüero (retired)', heroNation: 'Argentina', heroTop10: true, isCR7: false,
+    team: 'Morocco', teamCode: 'Morocco', flag: '🇲🇦', rank: 8, cls: 'A',
+    hero: 'Lionel Messi', heroNation: 'Argentina', heroTop10: true, isCR7: false,
     heroGoals: 0,
-    heroImg: 'img/joker.jpg',
-    heroInitials: 'SA',
+    heroImg: 'img/messi.jpg',
+    heroInitials: 'LM',
   },
   {
     name: 'Zhunny',
