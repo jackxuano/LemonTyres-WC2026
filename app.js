@@ -340,10 +340,13 @@ function renderFixtures() {
     list.className = 'fixture-list';
 
     matches.forEach(m => {
-      const involved = PLAYERS.filter(p =>
-        teamsMatch(p.teamCode, m.team1) || teamsMatch(p.teamCode, m.team2)
-      );
-      const tags = involved.map(p => `<span class="fx-player-tag">${p.flag} ${p.name}</span>`).join('');
+      // Split owners by which side their team is on
+      const homeOwners = PLAYERS.filter(p => teamsMatch(p.teamCode, m.team1));
+      const awayOwners = PLAYERS.filter(p => teamsMatch(p.teamCode, m.team2));
+      const involved = [...homeOwners, ...awayOwners];
+
+      const homeTags = homeOwners.map(p => `<span class="fx-player-tag">${p.flag} ${p.name}</span>`).join('');
+      const awayTags = awayOwners.map(p => `<span class="fx-player-tag">${p.flag} ${p.name}</span>`).join('');
 
       const played = m.score && m.score.ft;
       let scoreHtml;
@@ -367,7 +370,8 @@ function renderFixtures() {
         <span class="fx-team home">${m.team1}</span>
         ${scoreHtml}
         <span class="fx-team away">${m.team2}</span>
-        <div class="fx-player-tags">${tags}</div>
+        <div class="fx-player-tags home">${homeTags}</div>
+        <div class="fx-player-tags away">${awayTags}</div>
       `;
       list.appendChild(row);
     });

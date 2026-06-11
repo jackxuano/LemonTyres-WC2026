@@ -126,6 +126,23 @@ const PLAYERS = [
     heroImg: 'img/mbappe.jpg',
     heroInitials: 'KM',
   },
+  {
+    // NOTE: Italy did NOT qualify for WC2026 and Agüero is retired — pick is invalid, needs repick.
+    name: 'Joker',
+    team: 'Italy (invalid)', teamCode: 'Italy', flag: '🇮🇹', rank: 0, cls: 'A',
+    hero: 'Agüero (retired)', heroNation: 'Argentina', heroTop10: true, isCR7: false,
+    heroGoals: 0,
+    heroImg: 'img/aguero.jpg',
+    heroInitials: 'SA',
+  },
+  {
+    name: 'Zhunny',
+    team: 'Türkiye', teamCode: 'Turkey', flag: '🇹🇷', rank: 22, cls: 'C',
+    hero: 'Luis Díaz', heroNation: 'Colombia', heroTop10: false, isCR7: false,
+    heroGoals: 0,
+    heroImg: 'img/luisdiaz.jpg',
+    heroInitials: 'LD',
+  },
 ];
 
 // ============================================================
