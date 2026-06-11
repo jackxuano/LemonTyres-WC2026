@@ -80,6 +80,75 @@ function processMatches() {
       else                          { teamPoints[player.teamCode].losses++; }
     });
   });
+
+  processHeroGoals();
+}
+
+// ---- AUTO HERO GOAL COUNTING ----
+// Reads goalscorer data from the API and tallies each hero's goals automatically.
+// Rules honoured: 90min + ET goals count (they're in goals arrays with real minutes);
+// penalty-shootout goals are NOT counted (stored separately in score.p, never in goals
+// arrays); own goals are excluded.
+function processHeroGoals() {
+  // Build a tally per hero name (surname-matched)
+  const heroTally = {}; // heroKey -> goal count
+
+  // Map each unique hero to a normalized surname key
+  const heroKeys = {};
+  PLAYERS.forEach(p => {
+    const key = heroNameKey(p.hero);
+    heroKeys[p.hero] = key;
+    if (!(key in heroTally)) heroTally[key] = 0;
+  });
+
+  allMatches.forEach(m => {
+    if (!m.score || !m.score.ft) return; // only finished matches
+    const goals = [...(m.goals1 || []), ...(m.goals2 || [])];
+    goals.forEach(goal => {
+      if (!goal || !goal.name) return;
+      if (goal.owngoal || goal.og) return; // own goals don't count for the hero
+      const scorerKey = heroNameKey(goal.name);
+      // Match scorer to any hero with the same surname key
+      for (const key of Object.values(heroKeys)) {
+        if (key && scorerKey && key === scorerKey) {
+          heroTally[key]++;
+          break;
+        }
+      }
+    });
+  });
+
+  // Write tallies back onto each player's heroGoals (auto override)
+  PLAYERS.forEach(p => {
+    const key = heroKeys[p.hero];
+    if (key in heroTally) p.heroGoals = heroTally[key];
+  });
+}
+
+// Normalize a player name to a matchable surname key:
+// lowercase, strip accents, take the LAST word (surname), strip non-letters.
+function heroNameKey(fullName) {
+  if (!fullName) return '';
+  const noAccents = fullName.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const words = noAccents.trim().toLowerCase().split(/\s+/);
+  let surname = words[words.length - 1];
+  // Special cases where surname-only is ambiguous or differs from common name
+  const overrides = {
+    'cristiano ronaldo': 'ronaldo',
+    'kylian mbappe': 'mbappe',
+    'vinicius junior': 'vinicius',
+    'lamine yamal': 'yamal',
+    'darwin nunez': 'nunez',
+    'erling haaland': 'haaland',
+    'alexander sorloth': 'sorloth',
+    'lautaro martinez': 'martinez',
+    'bruno fernandes': 'fernandes',
+    'marcus rashford': 'rashford',
+    'luis diaz': 'diaz',
+  };
+  const flatKey = noAccents.trim().toLowerCase();
+  if (overrides[flatKey]) return overrides[flatKey];
+  return surname.replace(/[^a-z]/g, '');
 }
 
 function teamsMatch(a, b) {
