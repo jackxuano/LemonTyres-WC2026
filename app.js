@@ -494,23 +494,17 @@ function renderFixtures() {
   scroll.className = 'fx-scroll';
 
   let anchorEl = null;
+  let lastPastEl = null;
 
   allDates.forEach(date => {
     const matches = byDate[date];
     const isToday = date === todayMYT;
     const isPast = date < todayMYT;
 
-    // Insert the "next up" divider right before the anchor day
-    if (date === anchorDate && allDates.some(d => d < anchorDate)) {
-      const divider = document.createElement('div');
-      divider.className = 'fx-divider';
-      divider.innerHTML = '<span>▲ Results &nbsp;·&nbsp; Upcoming ▼</span>';
-      scroll.appendChild(divider);
-    }
-
     const group = document.createElement('div');
     group.className = 'fixture-group';
     if (date === anchorDate) anchorEl = group;
+    if (isPast) lastPastEl = group; // track most recent past day
 
     const [y, mo, d] = date.split('-').map(Number);
     const label = new Date(y, mo-1, d).toLocaleDateString('en-MY', { weekday:'short', day:'numeric', month:'short' });
@@ -564,6 +558,28 @@ function renderFixtures() {
     group.appendChild(list);
     scroll.appendChild(group);
   });
+
+  // Functional jump bar — only when there ARE past results to jump between
+  function scrollTo(target) {
+    if (!target) return;
+    const sRect = scroll.getBoundingClientRect();
+    const tRect = target.getBoundingClientRect();
+    scroll.scrollTo({ top: scroll.scrollTop + (tRect.top - sRect.top), behavior: 'smooth' });
+  }
+  if (lastPastEl) {
+    const bar = document.createElement('div');
+    bar.className = 'fx-jumpbar';
+    bar.innerHTML = `
+      <span class="fx-jump-pill">
+        <button class="fx-jump-btn" data-jump="results">▲ Results</button>
+        <span class="fx-jump-sep">·</span>
+        <button class="fx-jump-btn" data-jump="next">Upcoming ▼</button>
+      </span>
+    `;
+    container.appendChild(bar);
+    bar.querySelector('[data-jump="results"]').addEventListener('click', () => scrollTo(lastPastEl));
+    bar.querySelector('[data-jump="next"]').addEventListener('click', () => scrollTo(anchorEl));
+  }
 
   container.appendChild(scroll);
 
