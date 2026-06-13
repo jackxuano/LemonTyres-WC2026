@@ -20,22 +20,77 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 
-// ---- COUNTDOWN ----
-function updateCountdown() {
-  const diff = KICKOFF_UTC - Date.now();
-  const label = document.getElementById('cd-label');
-  if (diff <= 0) {
-    ['cd-d','cd-h','cd-m','cd-s'].forEach(id => document.getElementById(id).textContent = '00');
-    label.innerHTML = '<span class="live-pulse"></span>Tournament is LIVE!';
+// ---- NEXT RELATED MATCH ----
+// Finds the next upcoming match involving a participant's team and shows
+// the matchup + which players are on each side. Falls back to a generic
+// "next World Cup match" if no participant game is coming up.
+function updateNextMatch() {
+  const body = document.getElementById('nm-body');
+  const timeEl = document.getElementById('nm-time');
+  if (!body) return;
+  if (!allMatches.length) { body.textContent = 'Loading…'; return; }
+
+  const now = Date.now();
+
+  // Is any participant match live right now? (kickoff within last ~2h, no final score)
+  const upcoming = [];
+  let liveOne = null;
+  allMatches.forEach(m => {
+    const ko = matchKickoffMs(m.date, m.time);
+    if (ko === null) return;
+    const involved = PLAYERS.filter(p => teamsMatch(p.teamCode, m.team1) || teamsMatch(p.teamCode, m.team2));
+    if (involved.length === 0) return;
+    const finished = m.score && m.score.ft;
+    if (!finished && now >= ko && now <= ko + 125*60*1000) {
+      if (!liveOne) liveOne = { m, ko, involved };
+    } else if (ko > now) {
+      upcoming.push({ m, ko, involved });
+    }
+  });
+
+  let pick = liveOne;
+  let isLive = !!liveOne;
+  if (!pick) {
+    upcoming.sort((a,b) => a.ko - b.ko);
+    pick = upcoming[0];
+  }
+
+  const label = document.querySelector('.nm-label');
+
+  if (!pick) {
+    if (label) label.textContent = 'Next Up';
+    body.innerHTML = 'No more games with your teams 🍋';
+    timeEl.textContent = '';
     return;
   }
-  document.getElementById('cd-d').textContent = String(Math.floor(diff / 86400000)).padStart(2,'0');
-  document.getElementById('cd-h').textContent = String(Math.floor((diff % 86400000) / 3600000)).padStart(2,'0');
-  document.getElementById('cd-m').textContent = String(Math.floor((diff % 3600000) / 60000)).padStart(2,'0');
-  document.getElementById('cd-s').textContent = String(Math.floor((diff % 60000) / 1000)).padStart(2,'0');
+
+  const { m, ko, involved } = pick;
+  const homeNames = PLAYERS.filter(p => teamsMatch(p.teamCode, m.team1)).map(p => p.name);
+  const awayNames = PLAYERS.filter(p => teamsMatch(p.teamCode, m.team2)).map(p => p.name);
+  const homeTag = homeNames.length ? homeNames.join(' & ') : '—';
+  const awayTag = awayNames.length ? awayNames.join(' & ') : '—';
+
+  if (label) label.innerHTML = isLive ? '<span class="live-pulse"></span>On Now' : 'Next Up';
+
+  body.innerHTML =
+    `<span class="nm-match">${m.team1} <span class="nm-vs">vs</span> ${m.team2}</span>` +
+    `<span class="nm-players">${homeTag} <span class="nm-vs">vs</span> ${awayTag}</span>`;
+
+  if (isLive) {
+    timeEl.textContent = 'Playing now';
+  } else {
+    timeEl.textContent = formatNextKickoff(ko);
+  }
 }
-updateCountdown();
-setInterval(updateCountdown, 1000);
+
+// Format an upcoming kickoff in MYT, e.g. "Sat 14 Jun · 3:00 AM MYT"
+function formatNextKickoff(ko) {
+  const d = new Date(ko);
+  const opts = { timeZone:'Asia/Kuala_Lumpur', weekday:'short', day:'numeric', month:'short' };
+  const day = d.toLocaleDateString('en-MY', opts);
+  const time = d.toLocaleTimeString('en-MY', { timeZone:'Asia/Kuala_Lumpur', hour:'numeric', minute:'2-digit' });
+  return `${day} · ${time} MYT`;
+}
 
 // ---- REGISTRATION STATUS (flips at 0000 MYT, 12 Jun 2026) ----
 // Registration closes at midnight MYT on 12 Jun = 2026-06-11T16:00:00Z
@@ -70,6 +125,7 @@ async function loadData() {
     renderStandings();
     renderFixtures();
     renderLiveBanner();
+    updateNextMatch();
     document.getElementById('last-updated').textContent =
       'Updated ' + new Date().toLocaleTimeString('en-MY', { timeZone:'Asia/Kuala_Lumpur', hour:'2-digit', minute:'2-digit' }) + ' MYT';
   } catch (e) {
@@ -246,7 +302,7 @@ function renderHeroPodium(heroes) {
   // Only show podium once someone has actually scored
   const scorers = heroes.filter(h => h.heroGoals > 0);
   if (scorers.length === 0) {
-    podium.innerHTML = '<p class="podium-empty">No goals yet — podium unlocks at first hero goal ⚽</p>';
+    podium.innerHTML = '<p class="podium-empty">No hero goals yet — the podium fills up once your strikers find the net ⚽</p>';
     return;
   }
 
@@ -487,5 +543,6 @@ loadData();
 
 // Re-check the live banner every minute (matches start/end without a data reload)
 setInterval(renderLiveBanner, 60 * 1000);
+setInterval(updateNextMatch, 60 * 1000);
 // Auto-refresh full data every 5 minutes so scores update without manual refresh
 setInterval(loadData, 5 * 60 * 1000);

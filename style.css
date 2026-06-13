@@ -121,44 +121,56 @@ body {
 .countdown-bar {
   background: #0f0f00;
   border-bottom: 1px solid var(--yellow-border);
-  padding: 0.9rem 1rem;
+  padding: 0.85rem 1rem;
   text-align: center;
 }
-.countdown-inner {
-  display: inline-flex;
+.nextmatch-inner {
+  display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.3rem;
+  max-width: 600px;
+  margin: 0 auto;
 }
-.cd-label {
+.nm-label {
   font-size: 0.62rem;
   color: var(--text-dim);
   text-transform: uppercase;
   letter-spacing: 2.5px;
+  display: inline-flex;
+  align-items: center;
 }
-.cd-units {
+.nm-body {
   display: flex;
-  align-items: flex-start;
-  gap: 0.4rem;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
 }
-.cd-unit { display: flex; flex-direction: column; align-items: center; }
-.cd-num {
+.nm-match {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(2.8rem, 11vw, 4rem);
+  font-size: clamp(1.5rem, 6vw, 2.1rem);
   color: var(--yellow);
-  line-height: 1;
-  min-width: 62px;
-  text-align: center;
+  letter-spacing: 1px;
+  line-height: 1.1;
 }
-.cd-lbl { font-size: 0.6rem; color: var(--text-dimmer); text-transform: uppercase; letter-spacing: 1.5px; margin-top: 3px; }
-.cd-sep {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(2.8rem, 11vw, 4rem);
-  color: rgba(245,208,0,0.35);
-  line-height: 1;
-  margin-top: 2px;
+.nm-vs {
+  color: var(--text-dimmer);
+  font-size: 0.7em;
+  padding: 0 0.15em;
 }
-.cd-tz { font-size: 0.72rem; color: var(--text-dim); letter-spacing: 0.5px; font-weight: 500; }
+.nm-players {
+  font-size: 0.82rem;
+  color: var(--text);
+  font-weight: 600;
+}
+.nm-players .nm-vs { color: var(--text-dimmer); font-weight: 400; }
+.nm-time {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  letter-spacing: 0.5px;
+  font-weight: 500;
+  margin-top: 0.1rem;
+}
 
 .live-pulse {
   display: inline-block;
