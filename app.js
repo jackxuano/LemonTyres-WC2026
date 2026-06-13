@@ -73,7 +73,7 @@ function updateNextMatch() {
   if (label) label.innerHTML = isLive ? '<span class="live-pulse"></span>On Now' : 'Next Up';
 
   body.innerHTML =
-    `<span class="nm-match">${m.team1} <span class="nm-vs">vs</span> ${m.team2}</span>` +
+    `<span class="nm-match">${flagFor(m.team1)} ${m.team1} <span class="nm-vs">vs</span> ${m.team2} ${flagFor(m.team2)}</span>` +
     `<span class="nm-players">${homeTag} <span class="nm-vs">vs</span> ${awayTag}</span>`;
 
   if (isLive) {
