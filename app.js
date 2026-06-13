@@ -231,6 +231,27 @@ function teamsMatch(a, b) {
   return n(b).includes(n(a)) || n(a).includes(n(b));
 }
 
+// ---- COUNTRY FLAGS (all WC2026 nations) ----
+const FLAGS = {
+  'algeria':'🇩🇿','argentina':'🇦🇷','australia':'🇦🇺','austria':'🇦🇹','belgium':'🇧🇪',
+  'bosnia & herzegovina':'🇧🇦','bosnia':'🇧🇦','brazil':'🇧🇷','canada':'🇨🇦','cape verde':'🇨🇻',
+  'colombia':'🇨🇴','croatia':'🇭🇷','curacao':'🇨🇼','curaçao':'🇨🇼','czech republic':'🇨🇿',
+  'dr congo':'🇨🇩','ecuador':'🇪🇨','egypt':'🇪🇬','england':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','france':'🇫🇷',
+  'germany':'🇩🇪','ghana':'🇬🇭','haiti':'🇭🇹','iran':'🇮🇷','iraq':'🇮🇶','ivory coast':'🇨🇮',
+  'japan':'🇯🇵','jordan':'🇯🇴','mexico':'🇲🇽','morocco':'🇲🇦','netherlands':'🇳🇱',
+  'new zealand':'🇳🇿','norway':'🇳🇴','panama':'🇵🇦','paraguay':'🇵🇾','portugal':'🇵🇹',
+  'qatar':'🇶🇦','saudi arabia':'🇸🇦','scotland':'🏴󠁧󠁢󠁳󠁣󠁴󠁿','senegal':'🇸🇳','south africa':'🇿🇦',
+  'south korea':'🇰🇷','spain':'🇪🇸','sweden':'🇸🇪','switzerland':'🇨🇭','tunisia':'🇹🇳',
+  'turkey':'🇹🇷','türkiye':'🇹🇷','usa':'🇺🇸','united states':'🇺🇸','uruguay':'🇺🇾','uzbekistan':'🇺🇿',
+};
+function flagFor(teamName) {
+  if (!teamName) return '';
+  const key = teamName.trim().toLowerCase();
+  if (FLAGS[key]) return FLAGS[key];
+  // placeholder slots like "1A", "W73", "3A/B/C/D/F" → neutral marker
+  return '⚽';
+}
+
 // ---- RENDER STANDINGS ----
 function renderStandings() {
   const rows = PLAYERS.map(p => {
@@ -438,35 +459,58 @@ function renderPlayers() {
   });
 }
 
-// ---- RENDER FIXTURES — day by day in MYT ----
+// ---- RENDER FIXTURES — single scrollable timeline, auto-lands on next match ----
+let fixturesInitialScrollDone = false;
+
 function renderFixtures() {
   document.getElementById('fixtures-loading').style.display = 'none';
   const container = document.getElementById('fixtures-content');
-  container.innerHTML = '';
 
-  const relevant = allMatches.slice();
-  if (!relevant.length) {
+  if (!allMatches.length) {
     container.innerHTML = '<p class="loading-msg">No fixture data available yet.</p>';
     return;
   }
 
-  // Group by MYT date (some UTC-6 matches cross midnight in MYT)
+  // Preserve scroll position across the periodic (5-min) re-renders
+  const prevScroll = container.querySelector('.fx-scroll');
+  const savedTop = prevScroll ? prevScroll.scrollTop : null;
+
+  container.innerHTML = '';
+
+  // Group by MYT date, chronological (oldest → newest, top → bottom)
   const byDate = {};
-  relevant.forEach(m => {
+  allMatches.forEach(m => {
     const mytDate = getMYTDate(m.date, m.time);
     if (!byDate[mytDate]) byDate[mytDate] = [];
     byDate[mytDate].push(m);
   });
+  const todayMYT = new Date().toLocaleDateString('en-CA', { timeZone:'Asia/Kuala_Lumpur' });
+  const allDates = Object.keys(byDate).sort();
 
-  const todayMYT = new Date().toLocaleDateString('en-CA', { timeZone:'Asia/Kuala_Lumpur' }); // YYYY-MM-DD
+  // Anchor = first day that's today or later (the "next match" landing point)
+  let anchorDate = allDates.find(d => d >= todayMYT) || allDates[allDates.length - 1];
 
-  Object.keys(byDate).sort().forEach(date => {
+  const scroll = document.createElement('div');
+  scroll.className = 'fx-scroll';
+
+  let anchorEl = null;
+
+  allDates.forEach(date => {
     const matches = byDate[date];
     const isToday = date === todayMYT;
     const isPast = date < todayMYT;
 
+    // Insert the "next up" divider right before the anchor day
+    if (date === anchorDate && allDates.some(d => d < anchorDate)) {
+      const divider = document.createElement('div');
+      divider.className = 'fx-divider';
+      divider.innerHTML = '<span>▲ Results &nbsp;·&nbsp; Upcoming ▼</span>';
+      scroll.appendChild(divider);
+    }
+
     const group = document.createElement('div');
     group.className = 'fixture-group';
+    if (date === anchorDate) anchorEl = group;
 
     const [y, mo, d] = date.split('-').map(Number);
     const label = new Date(y, mo-1, d).toLocaleDateString('en-MY', { weekday:'short', day:'numeric', month:'short' });
@@ -482,7 +526,6 @@ function renderFixtures() {
     list.className = 'fixture-list';
 
     matches.forEach(m => {
-      // Split owners by which side their team is on
       const homeOwners = PLAYERS.filter(p => teamsMatch(p.teamCode, m.team1));
       const awayOwners = PLAYERS.filter(p => teamsMatch(p.teamCode, m.team2));
       const involved = [...homeOwners, ...awayOwners];
@@ -509,9 +552,9 @@ function renderFixtures() {
       const row = document.createElement('div');
       row.className = 'fixture-row';
       row.innerHTML = `
-        <span class="fx-team home">${m.team1}</span>
+        <span class="fx-team home"><span class="fx-flag">${flagFor(m.team1)}</span> ${m.team1}</span>
         ${scoreHtml}
-        <span class="fx-team away">${m.team2}</span>
+        <span class="fx-team away">${m.team2} <span class="fx-flag">${flagFor(m.team2)}</span></span>
         <div class="fx-player-tags home">${homeTags}</div>
         <div class="fx-player-tags away">${awayTags}</div>
       `;
@@ -519,7 +562,21 @@ function renderFixtures() {
     });
 
     group.appendChild(list);
-    container.appendChild(group);
+    scroll.appendChild(group);
+  });
+
+  container.appendChild(scroll);
+
+  // Position the scroll: first load → land on the next match; refresh → keep place
+  requestAnimationFrame(() => {
+    if (!fixturesInitialScrollDone && anchorEl) {
+      const cRect = scroll.getBoundingClientRect();
+      const aRect = anchorEl.getBoundingClientRect();
+      scroll.scrollTop += (aRect.top - cRect.top);
+      fixturesInitialScrollDone = true;
+    } else if (savedTop !== null) {
+      scroll.scrollTop = savedTop;
+    }
   });
 }
 

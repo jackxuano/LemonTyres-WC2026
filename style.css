@@ -421,9 +421,13 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.45rem 0;
-  margin-bottom: 0.45rem;
+  padding: 0.5rem 0.6rem;
+  margin: 0 -0.6rem 0.45rem;
   border-bottom: 2px solid var(--yellow-border);
+  position: sticky;
+  top: 34px;
+  background: var(--bg);
+  z-index: 2;
 }
 .fixture-day-header.today { border-bottom-color: var(--yellow); }
 .fixture-day-header.past { border-bottom-color: var(--border); opacity: 0.6; }
@@ -870,4 +874,39 @@ body {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 1.3rem;
   color: var(--yellow);
+}
+
+/* ======== FIXTURES: scrollable timeline + flags ======== */
+.fx-scroll {
+  max-height: 68vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0 0.6rem;
+  position: relative;
+  scrollbar-width: thin;
+}
+.fx-divider {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  text-align: center;
+  padding: 0.4rem 0;
+  margin: 0 -0.6rem;
+}
+.fx-divider span {
+  display: inline-block;
+  background: var(--yellow);
+  color: #111;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 0.72rem;
+  letter-spacing: 1.5px;
+  padding: 3px 12px;
+  border-radius: 20px;
+}
+
+.fx-flag {
+  font-size: 1.05em;
+  vertical-align: -1px;
 }
