@@ -573,7 +573,7 @@ function renderFixtures() {
       <span class="fx-jump-pill">
         <button class="fx-jump-btn" data-jump="results">▲ Results</button>
         <span class="fx-jump-sep">·</span>
-        <button class="fx-jump-btn" data-jump="next">Upcoming ▼</button>
+        <button class="fx-jump-btn" data-jump="next">Today ▼</button>
       </span>
     `;
     container.appendChild(bar);
