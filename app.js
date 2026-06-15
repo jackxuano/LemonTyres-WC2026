@@ -228,7 +228,14 @@ function heroNameKey(fullName) {
 
 function teamsMatch(a, b) {
   const n = s => s.toLowerCase().replace(/[^a-z]/g,'');
-  return n(b).includes(n(a)) || n(a).includes(n(b));
+  const na = n(a), nb = n(b);
+  if (!na || !nb) return false;
+  if (na === nb) return true;
+  // Only allow containment when the inner string is substantial (>=4 chars).
+  // Prevents knockout placeholders like "W73"→"w" from matching "Sweden".
+  if (na.length >= 4 && nb.includes(na)) return true;
+  if (nb.length >= 4 && na.includes(nb)) return true;
+  return false;
 }
 
 // ---- COUNTRY FLAGS (all WC2026 nations) ----
@@ -269,7 +276,7 @@ function renderStandings() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><span class="rank-num ${rc}">${rank}</span></td>
-      <td><span class="player-name">${p.name}</span></td>
+      <td><span class="player-name">${p.name}</span><span class="player-hero">⚽ ${p.hero}</span></td>
       <td><span class="flag-emoji">${p.flag}</span>${p.team}</td>
       <td class="hide-sm"><span class="cls-pill ${p.cls}">${p.cls}</span></td>
       <td class="pts-num">${fmt(p.teamPts)}</td>
@@ -497,7 +504,13 @@ function renderFixtures() {
   let lastPastEl = null;
 
   allDates.forEach(date => {
-    const matches = byDate[date];
+    const matches = byDate[date].slice().sort((a, b) => {
+      const ka = matchKickoffMs(a.date, a.time);
+      const kb = matchKickoffMs(b.date, b.time);
+      if (ka === null) return 1;
+      if (kb === null) return -1;
+      return ka - kb;
+    });
     const isToday = date === todayMYT;
     const isPast = date < todayMYT;
 

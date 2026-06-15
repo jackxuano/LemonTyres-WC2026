@@ -293,6 +293,7 @@ body {
 .rank-3 { color: #CD7F32; }
 
 .player-name { font-weight: 600; }
+.player-hero { display: block; font-size: 0.62rem; color: var(--text-dim); font-weight: 400; margin-top: 1px; white-space: nowrap; }
 .flag-emoji { margin-right: 3px; }
 
 .cls-pill {
