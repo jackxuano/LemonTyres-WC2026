@@ -288,6 +288,10 @@ body {
 .standings-tbl tr:hover td { background: var(--bg3); }
 
 .rank-num { font-family: 'Bebas Neue', sans-serif; font-size: 1.05rem; color: var(--text-dim); }
+.rank-move { display: block; font-size: 0.58rem; font-weight: 700; line-height: 1; margin-top: 1px; }
+.rank-move.up { color: #4CAF50; }
+.rank-move.down { color: #F44336; }
+.rank-move.same { color: var(--text-dimmer); font-weight: 400; }
 .rank-1 { color: var(--yellow); }
 .rank-2 { color: #C0C0C0; }
 .rank-3 { color: #CD7F32; }
@@ -701,9 +705,9 @@ body {
   padding: 0.4rem 0.2rem;
   gap: 1px;
 }
-.podium-step.tall  .podium-block { min-height: 78px; }
-.podium-step.mid   .podium-block { min-height: 60px; }
-.podium-step.short .podium-block { min-height: 46px; }
+.podium-step.tall  .podium-block { min-height: 110px; }
+.podium-step.mid   .podium-block { min-height: 74px; }
+.podium-step.short .podium-block { min-height: 50px; }
 .podium-block.gold   { background: linear-gradient(180deg, rgba(255,215,0,0.25), rgba(255,215,0,0.08)); border-top: 2px solid #FFD700; }
 .podium-block.silver { background: linear-gradient(180deg, rgba(192,192,192,0.22), rgba(192,192,192,0.06)); border-top: 2px solid #C0C0C0; }
 .podium-block.bronze { background: linear-gradient(180deg, rgba(205,127,50,0.22), rgba(205,127,50,0.06)); border-top: 2px solid #CD7F32; }

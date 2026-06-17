@@ -259,6 +259,46 @@ function flagFor(teamName) {
   return '⚽';
 }
 
+// ---- RANKING HELPER (pure — computes ranks from any match subset) ----
+// Used for movement indicators: compare ranking now vs ranking before today.
+function rankFor(matches) {
+  const tp = {}; // teamCode -> pts
+  matches.forEach(m => {
+    if (!m.score || !m.score.ft) return;
+    const [g1, g2] = m.score.ft;
+    [m.team1, m.team2].forEach((tn, idx) => {
+      const player = PLAYERS.find(p => teamsMatch(p.teamCode, tn));
+      if (!player) return;
+      tp[player.teamCode] = tp[player.teamCode] || 0;
+      const s = SCORING[player.cls];
+      const mine = idx === 0 ? g1 : g2, opp = idx === 0 ? g2 : g1;
+      if (mine > opp) tp[player.teamCode] += s.win;
+      else if (mine === opp) tp[player.teamCode] += s.draw;
+    });
+  });
+  // hero goals by key
+  const hg = {}, heroKeys = {};
+  PLAYERS.forEach(p => { const k = heroNameKey(p.hero); heroKeys[p.hero] = k; if (!(k in hg)) hg[k] = 0; });
+  matches.forEach(m => {
+    if (!m.score || !m.score.ft) return;
+    [...(m.goals1 || []), ...(m.goals2 || [])].forEach(g => {
+      if (!g || !g.name || g.owngoal || g.og) return;
+      const sk = heroNameKey(g.name);
+      for (const k of Object.values(heroKeys)) { if (k && sk && k === sk) { hg[k]++; break; } }
+    });
+  });
+  const arr = PLAYERS.map(p => {
+    const teamPts = tp[p.teamCode] || 0;
+    const goals = hg[heroKeys[p.hero]] || 0;
+    let per = p.isCR7 ? 1.5 : 1; if (!p.heroTop10) per += 1;
+    const heroPts = goals * per;
+    return { name: p.name, total: teamPts + heroPts, heroPts };
+  }).sort((a, b) => b.total - a.total || b.heroPts - a.heroPts);
+  const rankMap = {};
+  arr.forEach((p, i) => rankMap[p.name] = i + 1);
+  return rankMap;
+}
+
 // ---- RENDER STANDINGS ----
 function renderStandings() {
   const rows = PLAYERS.map(p => {
@@ -268,14 +308,29 @@ function renderStandings() {
     return { ...p, teamPts, heroPts, total: teamPts + heroPts };
   }).sort((a,b) => b.total - a.total || b.heroPts - a.heroPts);
 
+  // Movement: rank now vs rank before today's matches (MYT).
+  const todayMYT = new Date().toLocaleDateString('en-CA', { timeZone:'Asia/Kuala_Lumpur' });
+  const beforeToday = allMatches.filter(m => getMYTDate(m.date, m.time) < todayMYT && m.score && m.score.ft);
+  const hadPriorResults = beforeToday.length > 0;
+  const baselineRank = hadPriorResults ? rankFor(beforeToday) : null;
+
   const tbody = document.getElementById('standings-body');
   tbody.innerHTML = '';
   rows.forEach((p, i) => {
     const rank = i + 1;
     const rc = rank===1?'rank-1':rank===2?'rank-2':rank===3?'rank-3':'';
+
+    // delta = baseline - current (positive = moved up the table)
+    let moveHtml = '<span class="rank-move same">–</span>';
+    if (baselineRank && baselineRank[p.name]) {
+      const delta = baselineRank[p.name] - rank;
+      if (delta > 0) moveHtml = `<span class="rank-move up">▲${delta}</span>`;
+      else if (delta < 0) moveHtml = `<span class="rank-move down">▼${Math.abs(delta)}</span>`;
+    }
+
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><span class="rank-num ${rc}">${rank}</span></td>
+      <td><span class="rank-num ${rc}">${rank}</span>${moveHtml}</td>
       <td><span class="player-name">${p.name}</span><span class="player-hero">⚽ ${p.hero}</span></td>
       <td><span class="flag-emoji">${p.flag}</span>${p.team}</td>
       <td class="hide-sm"><span class="cls-pill ${p.cls}">${p.cls}</span></td>
@@ -299,7 +354,11 @@ function renderHeroGrid() {
     if (!heroMap[p.hero]) heroMap[p.hero] = { ...p, owners: [p.name] };
     else heroMap[p.hero].owners.push(p.name);
   });
-  const heroes = Object.values(heroMap).sort((a,b) => b.heroGoals - a.heroGoals);
+  // Rank by POINTS (fantasy value), then goals as tiebreak — so a non-top-10
+  // hero's bonus correctly ranks him above a top-10 hero with more raw goals.
+  const heroes = Object.values(heroMap).sort((a,b) =>
+    calcHeroPoints(b) - calcHeroPoints(a) || b.heroGoals - a.heroGoals
+  );
 
   renderHeroPodium(heroes);
 
