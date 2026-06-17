@@ -400,8 +400,8 @@ function renderHeroPodium(heroes) {
       <div class="podium-owner">${h.owners.join(', ')}</div>
       <div class="podium-block ${placeClass[idx]}">
         <span class="podium-rank">${placeNum[idx]}</span>
-        <span class="podium-goals">${h.heroGoals} ⚽</span>
         <span class="podium-pts">${fmt(pts)} pts</span>
+        <span class="podium-goals">${h.heroGoals} ⚽</span>
       </div>
     `;
     podium.appendChild(step);

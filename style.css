@@ -715,8 +715,8 @@ body {
 .podium-block.gold .podium-rank { color: #FFD700; }
 .podium-block.silver .podium-rank { color: #C0C0C0; }
 .podium-block.bronze .podium-rank { color: #CD7F32; }
-.podium-goals { font-size: 0.7rem; font-weight: 700; color: var(--text); }
-.podium-pts { font-size: 0.62rem; color: var(--yellow); font-weight: 600; }
+.podium-pts { font-size: 0.82rem; color: var(--yellow); font-weight: 700; }
+.podium-goals { font-size: 0.62rem; font-weight: 600; color: var(--text-dim); }
 
 /* ======== KEEPY-UP GAME ======== */
 .game-tagline {
