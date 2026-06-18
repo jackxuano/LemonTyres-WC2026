@@ -21,8 +21,8 @@
     tabBtn.style.display = '';
     panel.innerHTML = `
       <div class="bk-previewbar">PREVIEW · only you can see this</div>
-      <h2 class="section-title">Lemon Penalty 🍋⚽</h2>
-      <p class="game-tagline">Tap when the reticle is where you want it. Beat the keeper. One save or miss ends your run.</p>
+      <h2 class="section-title">Lemon Shoot-out 🍋⚽</h2>
+      <p class="game-tagline">Tap when the reticle is where you want it. Beat EDT in goal. One save or miss ends your run.</p>
       <div class="game-wrap">
         <div class="game-hud">
           <span class="game-score-label">STREAK</span>
@@ -56,6 +56,14 @@
     const RET_MIN = 52, RET_MAX = 308;   // reticle sweep (slightly past posts = miss risk)
     const GOAL_Y = 128;                  // where the ball crosses the line
     const SPOT = { x: 180, y: 408 };
+
+    // Keeper identity — change KEEPER_NAME freely. Drop img/edt.jpg in the
+    // img/ folder and his face shows automatically; otherwise a drawn keeper.
+    const KEEPER_NAME = 'EDT';
+    const keeperImg = new Image();
+    let keeperImgOk = false;
+    keeperImg.onload = () => { keeperImgOk = true; };
+    keeperImg.src = 'img/edt.jpg';
 
     let streak = 0;
     let best = parseInt(localStorage.getItem('lemonPenaltyBest') || '0', 10);
@@ -116,7 +124,7 @@
       state = 'result'; resultTimer = 55;
       if (streak > best) { best = streak; localStorage.setItem('lemonPenaltyBest', String(best)); bestEl.textContent = `BEST ${best}`; }
       setTimeout(() => {
-        titleEl.textContent = resultText.includes('MISS') ? 'MISSED IT' : 'KEEPER SAVES';
+        titleEl.textContent = resultText.includes('MISS') ? 'MISSED IT' : KEEPER_NAME + ' SAVES';
         subEl.textContent = `You scored ${streak} in a row`;
         startBtn.textContent = '▶ Go Again';
         overlay.style.display = 'flex';
@@ -160,6 +168,12 @@
       for (let y = BAR_Y; y <= MOUTH_Y; y += 16) { ctx.beginPath(); ctx.moveTo(POST_L, y); ctx.lineTo(POST_R, y); ctx.stroke(); }
       // keeper
       drawKeeper(keeper.x, 132);
+      // keeper name tag
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.font = "16px 'Bebas Neue', sans-serif";
+      ctx.textAlign = 'center';
+      ctx.fillText('🧤 ' + KEEPER_NAME, W / 2, 38);
+      ctx.textAlign = 'left';
       // reticle (aim)
       if (state === 'aim') {
         ctx.strokeStyle = 'rgba(245,208,0,0.9)'; ctx.lineWidth = 2;
@@ -183,12 +197,31 @@
 
     function drawKeeper(x, y) {
       ctx.save(); ctx.translate(x, y);
-      ctx.fillStyle = '#3a6ea5';
-      ctx.fillRect(-16, -6, 32, 34);       // body
-      ctx.fillRect(-30, 0, 16, 9);          // arm L
-      ctx.fillRect(14, 0, 16, 9);           // arm R
-      ctx.fillStyle = '#f2c89a';
-      ctx.beginPath(); ctx.arc(0, -16, 11, 0, Math.PI * 2); ctx.fill(); // head
+      // legs
+      ctx.fillStyle = '#111';
+      ctx.fillRect(-12, 24, 9, 16); ctx.fillRect(3, 24, 9, 16);
+      // jersey (bright GK kit)
+      ctx.fillStyle = '#1DE54A';
+      ctx.fillRect(-17, -6, 34, 32);
+      ctx.fillStyle = '#0d8f2e';
+      ctx.fillRect(-17, -6, 34, 5);              // collar shade
+      // outstretched arms + gloves
+      ctx.fillStyle = '#1DE54A';
+      ctx.fillRect(-32, -2, 16, 9); ctx.fillRect(16, -2, 16, 9);
+      ctx.fillStyle = '#fff';                     // gloves
+      ctx.fillRect(-36, -4, 8, 13); ctx.fillRect(28, -4, 8, 13);
+      // head — photo if available, else drawn
+      if (keeperImgOk) {
+        ctx.save();
+        ctx.beginPath(); ctx.arc(0, -16, 12, 0, Math.PI * 2); ctx.closePath(); ctx.clip();
+        ctx.drawImage(keeperImg, -12, -28, 24, 24);
+        ctx.restore();
+        ctx.strokeStyle = '#1DE54A'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0, -16, 12, 0, Math.PI * 2); ctx.stroke();
+      } else {
+        ctx.fillStyle = '#f2c89a';
+        ctx.beginPath(); ctx.arc(0, -16, 11, 0, Math.PI * 2); ctx.fill();
+      }
       ctx.restore();
     }
     function drawLemon(x, y, r) {
