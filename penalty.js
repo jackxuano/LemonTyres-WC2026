@@ -22,7 +22,7 @@
     panel.innerHTML = `
       <div class="bk-previewbar">PREVIEW · only you can see this</div>
       <h2 class="section-title">Lemon Shoot-out 🍋⚽</h2>
-      <p class="game-tagline">Tap when the reticle is where you want it. Beat EDT in goal. One save or miss ends your run.</p>
+      <p class="game-tagline">Tap when the reticle is where you want it. Beat Legendary EDT in goal. One save or miss ends your run.</p>
       <div class="game-wrap">
         <div class="game-hud">
           <span class="game-score-label">STREAK</span>
@@ -73,13 +73,13 @@
     let retX = 180, retDir = 1, retSpeed = 2.2;
     let ball = { x: SPOT.x, y: SPOT.y };
     let shot = null;      // {targetX, t}
-    let keeper = { x: 180, target: 180, reach: 36 };
+    let keeper = { x: 180, target: 180, reach: 40 };
     let resultText = '', resultColor = '#fff', resultTimer = 0;
     let animId = null;
 
     function difficulty() {
       retSpeed = 2.2 + streak * 0.45;          // reticle sweeps faster
-      keeper.reach = 34 + Math.min(10, streak); // keeper covers a touch more
+      keeper.reach = 40 + Math.min(10, streak); // covers a touch more as streak climbs
     }
 
     function startRun() {
@@ -124,8 +124,11 @@
       state = 'result'; resultTimer = 55;
       if (streak > best) { best = streak; localStorage.setItem('lemonPenaltyBest', String(best)); bestEl.textContent = `BEST ${best}`; }
       setTimeout(() => {
-        titleEl.textContent = resultText.includes('MISS') ? 'MISSED IT' : KEEPER_NAME + ' SAVES';
-        subEl.textContent = `You scored ${streak} in a row`;
+        const saved = !resultText.includes('MISS');
+        titleEl.textContent = saved ? 'DENIED!' : 'OFF TARGET';
+        subEl.textContent = saved
+          ? `Legendary EDT got a glove to it · ${streak} in a row`
+          : `You scored ${streak} in a row`;
         startBtn.textContent = '▶ Go Again';
         overlay.style.display = 'flex';
         state = 'over';
@@ -167,13 +170,9 @@
       for (let x = POST_L; x <= POST_R; x += 16) { ctx.beginPath(); ctx.moveTo(x, BAR_Y); ctx.lineTo(x, MOUTH_Y); ctx.stroke(); }
       for (let y = BAR_Y; y <= MOUTH_Y; y += 16) { ctx.beginPath(); ctx.moveTo(POST_L, y); ctx.lineTo(POST_R, y); ctx.stroke(); }
       // keeper
-      drawKeeper(keeper.x, 132);
-      // keeper name tag
-      ctx.fillStyle = 'rgba(255,255,255,0.85)';
-      ctx.font = "16px 'Bebas Neue', sans-serif";
-      ctx.textAlign = 'center';
-      ctx.fillText('🧤 ' + KEEPER_NAME, W / 2, 38);
-      ctx.textAlign = 'left';
+      drawKeeper(keeper.x, 118);
+      // Legendary EDT nameplate
+      drawNameplate();
       // reticle (aim)
       if (state === 'aim') {
         ctx.strokeStyle = 'rgba(245,208,0,0.9)'; ctx.lineWidth = 2;
@@ -195,33 +194,61 @@
       ctx.textAlign = 'left';
     }
 
+    function rrect(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+    function drawNameplate() {
+      const label = 'LEGENDARY EDT';
+      ctx.font = "18px 'Bebas Neue', sans-serif";
+      const tw = ctx.measureText(label).width;
+      const crownW = 22, padX = 14;
+      const w = tw + crownW + padX * 2, h = 30;
+      const x = W / 2 - w / 2, y = 10;
+      // plate
+      rrect(x, y, w, h, 9);
+      ctx.fillStyle = 'rgba(10,10,10,0.88)'; ctx.fill();
+      ctx.strokeStyle = '#F5D000'; ctx.lineWidth = 1.5; ctx.stroke();
+      // crown + name
+      ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+      ctx.font = "16px sans-serif";
+      ctx.fillText('👑', x + padX, y + h / 2 + 1);
+      ctx.font = "18px 'Bebas Neue', sans-serif";
+      ctx.fillStyle = '#F5D000';
+      ctx.fillText(label, x + padX + crownW, y + h / 2 + 1);
+      ctx.textBaseline = 'alphabetic';
+    }
     function drawKeeper(x, y) {
       ctx.save(); ctx.translate(x, y);
-      // legs
-      ctx.fillStyle = '#111';
-      ctx.fillRect(-12, 24, 9, 16); ctx.fillRect(3, 24, 9, 16);
-      // jersey (bright GK kit)
-      ctx.fillStyle = '#1DE54A';
-      ctx.fillRect(-17, -6, 34, 32);
-      ctx.fillStyle = '#0d8f2e';
-      ctx.fillRect(-17, -6, 34, 5);              // collar shade
-      // outstretched arms + gloves
-      ctx.fillStyle = '#1DE54A';
-      ctx.fillRect(-32, -2, 16, 9); ctx.fillRect(16, -2, 16, 9);
-      ctx.fillStyle = '#fff';                     // gloves
-      ctx.fillRect(-36, -4, 8, 13); ctx.fillRect(28, -4, 8, 13);
-      // head — photo if available, else drawn
+      const R = 28;                 // EDT token radius (≈ his save presence)
+      const lean = (keeper.target - keeper.x) * 0.12; // slight diving tilt
+      // arms + gloves reaching out (shows save range)
+      ctx.strokeStyle = '#1DE54A'; ctx.lineWidth = 9; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(-R + 6, 6); ctx.lineTo(-R - 12, -8); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(R - 6, 6); ctx.lineTo(R + 12, -8); ctx.stroke();
+      ctx.fillStyle = '#fff';        // gloves
+      ctx.beginPath(); ctx.arc(-R - 14, -10, 8, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(R + 14, -10, 8, 0, Math.PI * 2); ctx.fill();
+      // EDT as the keeper — big round photo token
+      ctx.save();
+      ctx.rotate(lean * 0.04);
+      ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.closePath(); ctx.clip();
       if (keeperImgOk) {
-        ctx.save();
-        ctx.beginPath(); ctx.arc(0, -16, 12, 0, Math.PI * 2); ctx.closePath(); ctx.clip();
-        ctx.drawImage(keeperImg, -12, -28, 24, 24);
-        ctx.restore();
-        ctx.strokeStyle = '#1DE54A'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.arc(0, -16, 12, 0, Math.PI * 2); ctx.stroke();
+        ctx.drawImage(keeperImg, -R, -R, R * 2, R * 2);
       } else {
+        ctx.fillStyle = '#1DE54A'; ctx.fillRect(-R, -R, R * 2, R * 2);
         ctx.fillStyle = '#f2c89a';
-        ctx.beginPath(); ctx.arc(0, -16, 11, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(0, -3, 13, 0, Math.PI * 2); ctx.fill();
       }
+      ctx.restore();
+      // keeper ring
+      ctx.strokeStyle = '#1DE54A'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.stroke();
       ctx.restore();
     }
     function drawLemon(x, y, r) {
