@@ -30,7 +30,7 @@
       <button class="tab-btn" data-tab="fixtures">Match Days</button>
       <button class="tab-btn" data-tab="game">Lemon-Timbang</button>
       <button class="tab-btn" data-tab="bracket" id="tab-btn-bracket" style="display:none">Bracket</button>
-      <button class="tab-btn" data-tab="penalty" id="tab-btn-penalty" style="display:none">Shoot-out</button>
+      <button class="tab-btn" data-tab="games" id="tab-btn-games" style="display:none">Games</button>
     </nav>
   </header>
 
@@ -183,8 +183,8 @@
     <!-- TAB: KNOCKOUT BRACKET (preview only — revealed by ?preview=laksa) -->
     <section class="tab-panel" id="tab-bracket"></section>
 
-    <!-- TAB: PENALTY SHOOTOUT (preview only — revealed by ?preview=laksa) -->
-    <section class="tab-panel" id="tab-penalty"></section>
+    <!-- TAB: GAMES / ARCADE (Shoot-out, Sprint, Glove Up — gated per game) -->
+    <section class="tab-panel" id="tab-games"></section>
 
   </main>
 
@@ -200,5 +200,8 @@
   <script src="app.js"></script>
   <script src="bracket.js"></script>
   <script src="penalty.js"></script>
+  <script src="sprint.js"></script>
+  <script src="glove.js"></script>
+  <script src="games.js"></script>
 </body>
 </html>

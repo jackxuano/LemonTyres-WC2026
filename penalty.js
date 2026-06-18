@@ -1,26 +1,16 @@
 // ============================================================
-// LEMON PENALTY SHOOTOUT — PREVIEW ONLY (gated behind ?preview=laksa)
-// Aim the moving reticle, tap to shoot. Beat the keeper. Score = goals
-// in a row; one save or miss ends the run. Local best for now;
-// shared Firebase leaderboard wired at launch.
+// LEMON SHOOT-OUT — Arcade game
+// Aim the moving reticle, tap to shoot. Beat Legendary EDT. Score =
+// goals in a row; one save or miss ends the run. Local best for now;
+// shared leaderboard wired at launch. Registers into window.ARCADE.
 // ============================================================
+window.ARCADE = window.ARCADE || { games: [], register(g){ this.games.push(g); } };
 
 (function () {
-  const PREVIEW = new URLSearchParams(location.search).get('preview') === 'laksa';
-  if (!PREVIEW) return;
+  let _running = false;
 
-  let booted = false;
-  document.addEventListener('DOMContentLoaded', init);
-  if (document.readyState !== 'loading') init();
-
-  function init() {
-    if (booted) return; booted = true;
-    const tabBtn = document.getElementById('tab-btn-penalty');
-    const panel = document.getElementById('tab-penalty');
-    if (!tabBtn || !panel) return;
-    tabBtn.style.display = '';
-    panel.innerHTML = `
-      <div class="bk-previewbar">PREVIEW · only you can see this</div>
+  function build(container) {
+    container.innerHTML = `
       <h2 class="section-title">Lemon Shoot-out 🍋⚽</h2>
       <p class="game-tagline">Tap when the reticle is where you want it. Beat Legendary EDT in goal. One save or miss ends your run.</p>
       <div class="game-wrap">
@@ -38,18 +28,18 @@
           </div>
         </div>
       </div>`;
-    setupGame();
+    setupGame(container);
   }
 
-  function setupGame() {
-    const cv = document.getElementById('pk-canvas');
+  function setupGame(container) {
+    const cv = container.querySelector('#pk-canvas');
     const ctx = cv.getContext('2d');
-    const streakEl = document.getElementById('pk-streak');
-    const bestEl = document.getElementById('pk-best');
-    const overlay = document.getElementById('pk-overlay');
-    const titleEl = document.getElementById('pk-title');
-    const subEl = document.getElementById('pk-sub');
-    const startBtn = document.getElementById('pk-start');
+    const streakEl = container.querySelector('#pk-streak');
+    const bestEl = container.querySelector('#pk-best');
+    const overlay = container.querySelector('#pk-overlay');
+    const titleEl = container.querySelector('#pk-title');
+    const subEl = container.querySelector('#pk-sub');
+    const startBtn = container.querySelector('#pk-start');
 
     const W = 360, H = 480;
     const POST_L = 64, POST_R = 296, BAR_Y = 70, MOUTH_Y = 150; // goal frame
@@ -263,7 +253,13 @@
       ctx.restore();
     }
 
-    function loop() { update(); draw(); animId = requestAnimationFrame(loop); }
+    function loop() {
+      if (cv.offsetParent === null) { animId = requestAnimationFrame(loop); return; } // pause when hidden
+      update(); draw(); animId = requestAnimationFrame(loop);
+    }
+
+    // expose stop so the Arcade controller can halt the loop on hide
+    container._stop = () => { if (animId) cancelAnimationFrame(animId); };
 
     function onTap(e) {
       e.preventDefault();
@@ -276,4 +272,11 @@
     // idle draw
     draw();
   }
+
+  window.ARCADE.register({
+    id: 'shootout', label: 'Shoot-out', live: false,
+    build,
+    show() {},
+    hide() { /* loop self-pauses via offsetParent; nothing required */ }
+  });
 })();
