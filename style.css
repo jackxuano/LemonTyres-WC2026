@@ -289,8 +289,8 @@ body {
 
 .rank-num { font-family: 'Bebas Neue', sans-serif; font-size: 1.05rem; color: var(--text-dim); }
 .rank-move { display: block; font-size: 0.58rem; font-weight: 700; line-height: 1; margin-top: 1px; }
-.rank-move.up { color: #4CAF50; }
-.rank-move.down { color: #F44336; }
+.rank-move.up { color: #1DE54A; }
+.rank-move.down { color: #FF3B30; }
 .rank-move.same { color: var(--text-dimmer); font-weight: 400; }
 .rank-1 { color: var(--yellow); }
 .rank-2 { color: #C0C0C0; }
@@ -757,7 +757,7 @@ body {
   margin-left: 0.3rem;
 }
 
-#game-canvas {
+#game-canvas, #pk-canvas {
   width: 100%;
   height: auto;
   display: block;

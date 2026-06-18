@@ -79,22 +79,14 @@
     renderBracketPanel(panel);
   }
 
-  let view = 'A'; // A = columns, B = tree
-
   function renderBracketPanel(panel){
     panel.innerHTML = `
       <div class="bk-previewbar">PREVIEW · sample teams · only you can see this</div>
-      <div class="bk-toggle">
-        <button class="bk-tg-btn ${view==='A'?'active':''}" data-v="A">View A · Columns</button>
-        <button class="bk-tg-btn ${view==='B'?'active':''}" data-v="B">View B · Tree</button>
-      </div>
+      <h2 class="section-title">Knockout Tree</h2>
       <div id="bk-body"></div>
     `;
-    panel.querySelectorAll('.bk-tg-btn').forEach(b=>{
-      b.addEventListener('click', ()=>{ view=b.dataset.v; renderBracketPanel(panel); });
-    });
     const body = panel.querySelector('#bk-body');
-    if (view==='A') renderColumns(body); else renderTree(body);
+    renderTree(body);
   }
 
   // small match-card HTML (shared)
@@ -117,22 +109,7 @@
       </div>`;
   }
 
-  // ---- VIEW A: round-by-round columns (mobile-friendly list) ----
-  let aRound = 0;
-  function renderColumns(body){
-    body.innerHTML = `
-      <div class="bk-roundsel">
-        ${ROUNDS.map((r,i)=>`<button class="bk-rs-btn ${i===aRound?'active':''}" data-r="${i}">${r.short}</button>`).join('')}
-      </div>
-      <div class="bk-collist">
-        ${ROUNDS[aRound].matches.map(matchCard).join('')}
-      </div>`;
-    body.querySelectorAll('.bk-rs-btn').forEach(b=>{
-      b.addEventListener('click', ()=>{ aRound=+b.dataset.r; renderColumns(body); });
-    });
-  }
-
-  // ---- VIEW B: horizontal scrollable tree with connecting lines + zoom ----
+  // ---- Bracket tree: horizontal scrollable, connecting lines + zoom ----
   let zoom = 0.62;
   function renderTree(body){
     const CARD_W=128, CARD_H=52, COL_GAP=46, V_GAP=14;
