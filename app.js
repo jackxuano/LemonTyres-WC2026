@@ -308,15 +308,35 @@ function renderStandings() {
     return { ...p, teamPts, heroPts, total: teamPts + heroPts };
   }).sort((a,b) => b.total - a.total || b.heroPts - a.heroPts);
 
+  // Movement: rank now vs rank before today's matches (MYT).
+  // Only show arrows once the BASELINE is complete (every team has already
+  // played at least once) — otherwise a team's first game looks like a huge
+  // jump (▲16) when it's really just joining the table.
+  const todayMYT = new Date().toLocaleDateString('en-CA', { timeZone:'Asia/Kuala_Lumpur' });
+  const beforeToday = allMatches.filter(m => getMYTDate(m.date, m.time) < todayMYT && m.score && m.score.ft);
+  const teamCodes = [...new Set(PLAYERS.map(p => p.teamCode))];
+  const baselineComplete = teamCodes.every(tc =>
+    beforeToday.some(m => teamsMatch(tc, m.team1) || teamsMatch(tc, m.team2))
+  );
+  const baselineRank = baselineComplete ? rankFor(beforeToday) : null;
+
   const tbody = document.getElementById('standings-body');
   tbody.innerHTML = '';
   rows.forEach((p, i) => {
     const rank = i + 1;
     const rc = rank===1?'rank-1':rank===2?'rank-2':rank===3?'rank-3':'';
 
+    // delta = baseline - current (positive = moved up the table)
+    let moveHtml = '<span class="rank-move same">–</span>';
+    if (baselineRank && baselineRank[p.name]) {
+      const delta = baselineRank[p.name] - rank;
+      if (delta > 0) moveHtml = `<span class="rank-move up">▲${delta}</span>`;
+      else if (delta < 0) moveHtml = `<span class="rank-move down">▼${Math.abs(delta)}</span>`;
+    }
+
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><span class="rank-num ${rc}">${rank}</span></td>
+      <td><span class="rank-num ${rc}">${rank}</span>${moveHtml}</td>
       <td><span class="player-name">${p.name}</span><span class="player-hero">⚽ ${p.hero}</span></td>
       <td><span class="flag-emoji">${p.flag}</span>${p.team}</td>
       <td class="hide-sm"><span class="cls-pill ${p.cls}">${p.cls}</span></td>
