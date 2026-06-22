@@ -986,13 +986,14 @@ body {
 .bk-tcard { position: absolute; }
 
 /* ======== ARCADE (Games tab) ======== */
-.arc-nav { display: flex; gap: 6px; background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 4px; margin-bottom: 1rem; overflow-x: auto; }
+.arc-nav { display: flex; gap: 6px; background: var(--bg3); border: 1px solid var(--border); border-radius: 12px; padding: 5px; margin-bottom: 1.1rem; overflow-x: auto; }
 .arc-btn {
   flex: 1; min-width: max-content; white-space: nowrap; background: none; border: none; color: var(--text-dim);
-  font-family: 'Bebas Neue', sans-serif; font-size: 0.92rem; letter-spacing: 0.6px;
-  padding: 0.5rem 0.8rem; border-radius: 7px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.15rem; letter-spacing: 0.8px;
+  padding: 0.6rem 0.9rem; border-radius: 8px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  display: inline-flex; align-items: center; gap: 6px; line-height: 1;
 }
-.arc-btn.active { background: var(--yellow); color: #111; font-weight: 700; }
-.arc-new { font-size: 0.5rem; vertical-align: middle; background: #FF3B30; color: #fff; padding: 1px 4px; border-radius: 4px; letter-spacing: 0.5px; }
+.arc-btn.active { background: var(--yellow); color: #111; }
+.arc-new { font-family: 'Inter', sans-serif; font-size: 0.5rem; font-weight: 700; background: #FF3B30; color: #fff; padding: 2px 5px; border-radius: 5px; letter-spacing: 0.5px; }
 .arc-btn.active .arc-new { background: #111; color: var(--yellow); }
 .arc-stage { min-height: 60px; }

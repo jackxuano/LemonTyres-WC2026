@@ -28,7 +28,6 @@
       <button class="tab-btn active" data-tab="standings">Standings</button>
       <button class="tab-btn" data-tab="players">Squad Book</button>
       <button class="tab-btn" data-tab="fixtures">Match Days</button>
-      <button class="tab-btn" data-tab="game">Lemon-Timbang</button>
       <button class="tab-btn" data-tab="bracket" id="tab-btn-bracket" style="display:none">Bracket</button>
       <button class="tab-btn" data-tab="games" id="tab-btn-games" style="display:none">Games</button>
     </nav>
@@ -146,7 +145,8 @@
     </section>
 
     <!-- TAB: LEMON-TIMBANG GAME -->
-    <section class="tab-panel" id="tab-game">
+    <!-- LEMON-TIMBANG markup — relocated into the Games tab by games.js -->
+    <div id="timbang-content" style="display:none">
       <h2 class="section-title">Lemon-Timbang 🍋</h2>
       <p class="game-tagline">Tap the lemon to keep it up. Don't let it drop. Each touch = 1 point.</p>
 
@@ -178,7 +178,8 @@
       <div class="game-leaderboard" id="game-leaderboard">
         <p class="game-lb-loading">Loading leaderboard…</p>
       </div>
-    </section>
+    </div>
+    <!-- end timbang-content -->
 
     <!-- TAB: KNOCKOUT BRACKET (preview only — revealed by ?preview=laksa) -->
     <section class="tab-panel" id="tab-bracket"></section>
