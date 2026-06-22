@@ -26,10 +26,10 @@
 
     const anyHidden = visible.some(g => !g.live);
     panel.innerHTML =
-      (PREVIEW && anyHidden ? '<div class="bk-previewbar">PREVIEW \u00b7 games marked NEW are hidden from the group</div>' : '') +
+      (PREVIEW && anyHidden ? '<div class="bk-previewbar">PREVIEW \u00b7 includes unreleased games hidden from the group</div>' : '') +
       (visible.length > 1 ? '<div class="arc-nav">' + visible.map(function (g) {
         return '<button class="arc-btn" data-id="' + g.id + '">' + g.label +
-          ((!g.live && PREVIEW) ? '<span class="arc-new">NEW</span>' : '') + '</button>';
+          (g.isNew ? '<span class="arc-new">NEW</span>' : '') + '</button>';
       }).join('') + '</div>' : '') +
       '<div class="arc-stage" id="arc-stage"></div>';
 
