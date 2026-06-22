@@ -27,6 +27,15 @@ window.ARCADE = window.ARCADE || { games: [], register(g){ this.games.push(g); }
             <button class="game-btn" id="pk-start">▶ Shoot</button>
           </div>
         </div>
+      </div>
+      <h3 class="game-lb-title">🏆 Shoot-out Leaders</h3>
+      <div class="game-submit" id="pk-submit" style="display:none">
+        <input class="game-name-input" id="pk-name" maxlength="14" placeholder="Your name" />
+        <button class="game-btn" id="pk-submit-btn">Submit streak</button>
+        <span class="game-submit-msg" id="pk-submit-msg"></span>
+      </div>
+      <div class="game-leaderboard" id="pk-leaderboard">
+        <p class="game-lb-loading">Loading leaderboard…</p>
       </div>`;
     setupGame(container);
   }
@@ -40,6 +49,12 @@ window.ARCADE = window.ARCADE || { games: [], register(g){ this.games.push(g); }
     const titleEl = container.querySelector('#pk-title');
     const subEl = container.querySelector('#pk-sub');
     const startBtn = container.querySelector('#pk-start');
+    const lbEl = container.querySelector('#pk-leaderboard');
+    const submitWrap = container.querySelector('#pk-submit');
+    const nameInput = container.querySelector('#pk-name');
+    const submitBtn = container.querySelector('#pk-submit-btn');
+    const submitMsg = container.querySelector('#pk-submit-msg');
+    let lastStreak = 0;
 
     const W = 360, H = 480;
     const POST_L = 64, POST_R = 296, BAR_Y = 70, MOUTH_Y = 150; // goal frame
@@ -75,6 +90,7 @@ window.ARCADE = window.ARCADE || { games: [], register(g){ this.games.push(g); }
     function startRun() {
       streak = 0; streakEl.textContent = '0';
       overlay.style.display = 'none';
+      submitWrap.style.display = 'none';
       nextShot();
       if (animId) cancelAnimationFrame(animId);
       loop();
@@ -122,6 +138,13 @@ window.ARCADE = window.ARCADE || { games: [], register(g){ this.games.push(g); }
         startBtn.textContent = '▶ Go Again';
         overlay.style.display = 'flex';
         state = 'over';
+        lastStreak = streak;
+        if (streak > 0 && window.LemonDB && window.LemonDB.ready()) {
+          submitWrap.style.display = 'flex';
+          submitMsg.textContent = '';
+          submitBtn.disabled = false;
+          submitBtn.textContent = `Submit streak (${streak})`;
+        }
       }, 950);
     }
 
@@ -268,6 +291,43 @@ window.ARCADE = window.ARCADE || { games: [], register(g){ this.games.push(g); }
     cv.addEventListener('mousedown', onTap);
     cv.addEventListener('touchstart', onTap, { passive: false });
     startBtn.addEventListener('click', startRun);
+
+    // ---- shared leaderboard (best streak per person) ----
+    function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+    function renderLB(arr) {
+      const bestByName = {};
+      arr.forEach(s => {
+        const k = s.name.trim().toLowerCase();
+        if (!bestByName[k] || s.score > bestByName[k].score) bestByName[k] = { name: s.name.trim(), score: s.score };
+      });
+      const rows = Object.values(bestByName).sort((a, b) => b.score - a.score).slice(0, 15);
+      if (!rows.length) { lbEl.innerHTML = '<p class="game-lb-loading">No scores yet — be the first! 🍋</p>'; return; }
+      lbEl.innerHTML = rows.map((s, i) => {
+        const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+        return `<div class="game-lb-row"><span class="game-lb-rank">${medal}</span>` +
+          `<span class="game-lb-name">${escapeHtml(s.name)}</span>` +
+          `<span class="game-lb-score">${s.score}</span></div>`;
+      }).join('');
+    }
+    if (window.LemonDB && window.LemonDB.ready()) {
+      const savedName = localStorage.getItem('lemonPlayerName') || '';
+      if (savedName) nameInput.value = savedName;
+      window.LemonDB.subscribe('arcade/shootout', (arr, err) => {
+        if (err || !arr) { lbEl.innerHTML = '<p class="game-lb-loading">Leaderboard unavailable — check Firebase rules.</p>'; return; }
+        renderLB(arr);
+      });
+      submitBtn.addEventListener('click', () => {
+        const name = nameInput.value.trim();
+        if (!name) { submitMsg.textContent = 'Enter a name first'; return; }
+        submitBtn.disabled = true; submitMsg.textContent = 'Saving…';
+        localStorage.setItem('lemonPlayerName', name);
+        window.LemonDB.submit('arcade/shootout', { name, score: lastStreak, ts: Date.now() })
+          .then(() => { submitMsg.textContent = 'Submitted! 🍋'; submitWrap.style.display = 'none'; })
+          .catch(() => { submitBtn.disabled = false; submitMsg.textContent = 'Failed — check connection'; });
+      });
+    } else {
+      lbEl.innerHTML = '<p class="game-lb-loading">Leaderboard loading… (or offline)</p>';
+    }
 
     // idle draw
     draw();
