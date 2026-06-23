@@ -24,7 +24,7 @@ window.ARCADE = window.ARCADE || { games: [], register(g){ this.games.push(g); }
   function build(container) {
     container.innerHTML =
       '<h2 class="section-title">Lemon Sprint 🍋💨</h2>' +
-      '<p class="game-tagline">Joker\u2019s off on one of his mazy runs. Drag him left/right to dodge the sliding tackles \u2014 how far can he get before someone clatters him?</p>' +
+      '<p class="game-tagline">Joker\u2019s off on one of his mazy dribbles. Drag him left/right to weave through the cones \u2014 how many metres can you take him?</p>' +
       '<div class="game-wrap">' +
         '<div class="game-hud"><span class="game-score-label">METRES</span>' +
         '<span class="game-score" id="sp-score">0</span><span class="game-best" id="sp-best"></span></div>' +
@@ -114,10 +114,23 @@ window.ARCADE = window.ARCADE || { games: [], register(g){ this.games.push(g); }
     for (let y = -48 + scroll; y < H; y += 48) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
     ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.beginPath(); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H); ctx.stroke();
     obstacles.forEach(o => {
-      ctx.fillStyle = '#c0392b'; roundRect(o.x, o.y, o.w, o.h, 6); ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(o.x + 4, o.y + 4, o.w - 8, 3);
+      const n = Math.max(2, Math.round(o.w / 24));
+      for (let i = 0; i < n; i++) drawCone(o.x + (o.w / (n - 1)) * i, o.y + o.h + 1);
     });
     drawJoker(player.x, player.y);
+  }
+  function drawCone(cx, baseY) {
+    const hh = 20, hw = 11;
+    const topY = baseY - hh;
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.beginPath(); ctx.ellipse(cx, baseY + 1, hw + 2, 3, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#F26A1B';
+    ctx.beginPath(); ctx.moveTo(cx, topY); ctx.lineTo(cx - hw, baseY); ctx.lineTo(cx + hw, baseY); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.moveTo(cx - hw * 0.52, baseY - hh * 0.42); ctx.lineTo(cx + hw * 0.52, baseY - hh * 0.42);
+    ctx.lineTo(cx + hw * 0.38, baseY - hh * 0.66); ctx.lineTo(cx - hw * 0.38, baseY - hh * 0.66); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#D2541A';
+    ctx.beginPath(); ctx.ellipse(cx, baseY, hw + 3, 3, 0, 0, 7); ctx.fill();
   }
   function roundRect(x, y, w, h, r) {
     ctx.beginPath(); ctx.moveTo(x + r, y);
@@ -136,6 +149,13 @@ window.ARCADE = window.ARCADE || { games: [], register(g){ this.games.push(g); }
     ctx.lineCap = 'butt';
     // body (kit)
     ctx.fillStyle = '#c0392b'; roundRect(cx - 13, cy - 8, 26, 24, 7); ctx.fill();
+    // sponsor on chest — 上善如水 (2x2)
+    ctx.fillStyle = '#fff';
+    ctx.font = '700 8px "PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('上', cx - 5, cy + 1); ctx.fillText('善', cx + 5, cy + 1);
+    ctx.fillText('如', cx - 5, cy + 10); ctx.fillText('水', cx + 5, cy + 10);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
     // head
     if (headOk) ctx.drawImage(headImg, cx - 17, cy - 46, 34, 40);
     else { ctx.fillStyle = '#f2c89a'; ctx.beginPath(); ctx.arc(cx, cy - 24, 14, 0, 7); ctx.fill(); }
