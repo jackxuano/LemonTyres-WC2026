@@ -1,17 +1,11 @@
 // ============================================================
 // LEMON TYRES WC 2026 — KNOCKOUT BRACKET (live, feed-driven)
-// Renders R32 → Final from the openfootball feed.
-// - Lemon-owned teams highlighted (yellow + owner tag)
-// - Lemon-vs-Lemon ties flagged as derbies
-// - Eliminated teams: red strike-through + fade (default)
-// - Lemon-on-Lemon KO: loser struck-through but NOT faded, plus a
-//   "SQUEEZED 🍋" stamp pinned to the winner's corner (clear of names)
-// Depends on: PLAYERS, teamsMatch?, convertToMYT (from data.js/app.js)
+// Unique class prefix (lkb-) so NOTHING in style.css can collide.
+// Renders only rounds that have real teams; placeholders show as TBD.
 // ============================================================
 (function () {
   const API_URL = 'https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json';
 
-  // Reuse global teamsMatch if present; otherwise define a safe local one.
   const _teamsMatch = (typeof teamsMatch === 'function')
     ? teamsMatch
     : function (a, b) {
@@ -30,12 +24,20 @@
     'Quarter-final': 'QF', 'Semi-final': 'SF', 'Final': 'FINAL'
   };
 
+  function isPlaceholder(name) {
+    if (!name) return true;
+    if (/^[WL]\d+$/i.test(name)) return true;
+    if (/^(winner|loser|runner)/i.test(name)) return true;
+    if (/^[123][A-L]\b/.test(name)) return true;
+    if (name.includes('/')) return true;
+    return false;
+  }
+
   function ownersFor(team) {
-    if (typeof PLAYERS === 'undefined') return [];
+    if (typeof PLAYERS === 'undefined' || isPlaceholder(team)) return [];
     return PLAYERS.filter(p => _teamsMatch(p.teamCode, team)).map(p => p.name);
   }
 
-  // Who advanced? 90' (ft) decides; if level, ET; if level, penalties.
   function winnerIndex(score) {
     if (!score) return null;
     if (score.ft && score.ft[0] !== score.ft[1]) return score.ft[0] > score.ft[1] ? 0 : 1;
@@ -50,9 +52,9 @@
       const t = (typeof convertToMYT === 'function') ? convertToMYT(m.time, m.date) : (m.time || 'TBC');
       return { text: t, pending: true };
     }
-    let txt = `${s.ft[0]}–${s.ft[1]}`;
-    if (s.p) txt += ` <span class="bk-xtra">(pens ${s.p[0]}–${s.p[1]})</span>`;
-    else if (s.et) txt += ` <span class="bk-xtra">AET</span>`;
+    let txt = `${s.ft[0]}\u2013${s.ft[1]}`;
+    if (s.p) txt += ` <span class="lkb-xtra">(pens ${s.p[0]}\u2013${s.p[1]})</span>`;
+    else if (s.et) txt += ` <span class="lkb-xtra">AET</span>`;
     return { text: txt, pending: false };
   }
 
@@ -62,17 +64,16 @@
   }
 
   function sideHtml(team, isWinner, isLoser, isDerby, owners) {
+    const ph = isPlaceholder(team);
     const lemon = owners.length > 0;
-    const cls = ['bk-side'];
-    if (lemon) cls.push('bk-lemon');
-    if (isWinner) cls.push('bk-win');
-    if (isLoser) cls.push(isDerby ? 'bk-elim-derby' : 'bk-elim'); // derby loser: strike, no fade
-    const ownerTag = lemon ? `<span class="bk-owner">${esc(owners.join('/'))}</span>` : '';
-    // SQUEEZED tag sits inline next to the LOSER's owner name (straight, in-frame)
-    const stamp = (isLoser && isDerby) ? `<span class="bk-squeeze">SQUEEZED 🍋</span>` : '';
-    return `<div class="${cls.join(' ')}">
-      <span class="bk-team">${esc(team)}</span>${ownerTag}${stamp}
-    </div>`;
+    const cls = ['lkb-side'];
+    if (lemon) cls.push('lkb-lemon');
+    if (isWinner) cls.push('lkb-win');
+    if (isLoser) cls.push(isDerby ? 'lkb-elim-derby' : 'lkb-elim');
+    const label = ph ? 'TBD' : team;
+    const ownerTag = lemon ? `<span class="lkb-owner">${esc(owners.join('/'))}</span>` : '';
+    const stamp = (isLoser && isDerby) ? `<span class="lkb-squeeze">SQUEEZED 🍋</span>` : '';
+    return `<div class="${cls.join(' ')}"><span class="lkb-team${ph ? ' lkb-tbd' : ''}">${esc(label)}</span>${ownerTag}${stamp}</div>`;
   }
 
   function tieHtml(m) {
@@ -83,11 +84,7 @@
     const sl = scoreLine(m);
     const sideA = sideHtml(m.team1, decided && w === 0, decided && w === 1, derby, oA);
     const sideB = sideHtml(m.team2, decided && w === 1, decided && w === 0, derby, oB);
-    return `<div class="bk-tie${derby ? ' bk-derby' : ''}">
-      ${sideA}
-      ${sideB}
-      <div class="bk-meta ${sl.pending ? 'bk-pending' : ''}">${sl.text}</div>
-    </div>`;
+    return `<div class="lkb-tie${derby ? ' lkb-derby' : ''}">${sideA}${sideB}<div class="lkb-meta ${sl.pending ? 'lkb-pending' : ''}">${sl.text}</div></div>`;
   }
 
   function render(panel, matches) {
@@ -95,59 +92,58 @@
     const byRound = {};
     ko.forEach(m => { (byRound[m.round] = byRound[m.round] || []).push(m); });
 
-    const cols = ROUND_ORDER.filter(r => byRound[r] && byRound[r].length)
-      .map(r => {
-        const ties = byRound[r].map(tieHtml).join('');
-        return `<div class="bk-col">
-          <div class="bk-round">${ROUND_SHORT[r] || r}</div>
-          ${ties}
-        </div>`;
-      }).join('');
+    const liveRounds = ROUND_ORDER.filter(r => {
+      const arr = byRound[r];
+      return arr && arr.some(m => !isPlaceholder(m.team1) || !isPlaceholder(m.team2));
+    });
 
-    panel.innerHTML = `
-      <div class="bk-wrap">
-        <div class="bk-head">
-          <h2 class="bk-title">🍋 KNOCKOUT BRACKET</h2>
-          <p class="bk-sub">Scroll sideways for later rounds · 🍋 = a Lemon team</p>
-        </div>
-        <div class="bk-scroll">${cols || '<p class="bk-empty">Knockouts haven\'t started yet.</p>'}</div>
-      </div>`;
+    const cols = liveRounds.map(r => {
+      const ties = byRound[r].map(tieHtml).join('');
+      return `<div class="lkb-col"><div class="lkb-round">${ROUND_SHORT[r] || r}</div>${ties}</div>`;
+    }).join('');
+
+    panel.innerHTML =
+      '<div class="lkb-wrap">' +
+        '<div class="lkb-head">' +
+          '<h2 class="lkb-title">🍋 KNOCKOUT BRACKET</h2>' +
+          '<p class="lkb-sub">' + (liveRounds.length > 1 ? 'Scroll sideways for later rounds · ' : '') + '🍋 = a Lemon team</p>' +
+        '</div>' +
+        '<div class="lkb-scroll">' + (cols || '<p class="lkb-empty">Knockouts haven\'t started yet.</p>') + '</div>' +
+      '</div>';
   }
 
   function injectCSS() {
-    if (document.getElementById('bk-style')) return;
-    const css = `
-    #tab-bracket .bk-wrap{padding:4px 0 16px;}
-    #tab-bracket .bk-head{padding:0 4px 6px;}
-    #tab-bracket .bk-title{font-family:'Bebas Neue',sans-serif;letter-spacing:1px;color:#F5D000;font-size:1.5rem;margin:0;line-height:1;}
-    #tab-bracket .bk-sub{color:#8f8f8f;font-size:0.7rem;margin:4px 0 0;}
-    #tab-bracket .bk-scroll{display:flex;gap:14px;overflow-x:auto;padding:6px 4px 10px;-webkit-overflow-scrolling:touch;}
-    #tab-bracket .bk-col{flex:0 0 auto;min-width:178px;display:flex;flex-direction:column;gap:10px;}
-    #tab-bracket .bk-round{font-family:'Bebas Neue',sans-serif;letter-spacing:1px;color:#F5D000;font-size:1rem;text-align:center;padding:2px 0;border-bottom:1px solid #2a2a2a;position:sticky;top:0;}
-    #tab-bracket .bk-tie{position:relative;background:#161616;border:1px solid #262626;border-radius:8px;padding:7px 9px;overflow:hidden;}
-    #tab-bracket .bk-tie.bk-derby{border-color:#1DE54A;}
-    #tab-bracket .bk-side{position:relative;display:flex;align-items:center;gap:6px;font-size:0.86rem;padding:2px 0;white-space:nowrap;overflow:hidden;}
-    #tab-bracket .bk-side + .bk-side{border-top:1px solid #202020;}
-    #tab-bracket .bk-team{overflow:hidden;text-overflow:ellipsis;}
-    #tab-bracket .bk-lemon .bk-team{color:#F5D000;font-weight:700;}
-    #tab-bracket .bk-owner{color:#8f8f8f;font-size:0.62rem;flex:0 0 auto;}
-    #tab-bracket .bk-win .bk-team{font-weight:800;}
-    /* default eliminated: strike + fade */
-    #tab-bracket .bk-elim{opacity:0.4;}
-    #tab-bracket .bk-elim .bk-team{position:relative;}
-    #tab-bracket .bk-elim .bk-team::after{content:'';position:absolute;left:-3%;right:-3%;top:52%;height:2px;background:#FF2D2D;transform:rotate(-7deg);box-shadow:0 0 5px #FF2D2D;}
-    /* derby loser: strike but NO fade (name stays readable under stamp) */
-    #tab-bracket .bk-elim-derby .bk-team{position:relative;}
-    #tab-bracket .bk-elim-derby .bk-team::after{content:'';position:absolute;left:-3%;right:-3%;top:52%;height:2px;background:#FF2D2D;transform:rotate(-7deg);box-shadow:0 0 5px #FF2D2D;}
-    /* derby loser: strike (no fade) + inline straight SQUEEZED tag */
-    #tab-bracket .bk-squeeze{flex:0 0 auto;margin-left:auto;color:#FF2D2D;border:1.5px solid #FF2D2D;font-family:'Bebas Neue',sans-serif;font-size:0.62rem;letter-spacing:0.5px;line-height:1.3;padding:0 5px;border-radius:3px;white-space:nowrap;}
-    #tab-bracket .bk-meta{margin-top:5px;text-align:center;font-size:0.74rem;color:#ddd;font-weight:700;}
-    #tab-bracket .bk-meta.bk-pending{color:#8f8f8f;font-weight:400;}
-    #tab-bracket .bk-xtra{color:#8f8f8f;font-weight:400;font-size:0.64rem;}
-    #tab-bracket .bk-empty{color:#8f8f8f;padding:20px;text-align:center;}
-    `;
+    if (document.getElementById('lkb-style')) return;
+    const css = [
+    "#tab-bracket .lkb-wrap{padding:4px 0 16px;}",
+    "#tab-bracket .lkb-head{padding:0 4px 6px;}",
+    "#tab-bracket .lkb-title{font-family:'Bebas Neue',sans-serif;letter-spacing:1px;color:#F5D000;font-size:1.5rem;margin:0;line-height:1;}",
+    "#tab-bracket .lkb-sub{color:#8f8f8f;font-size:0.7rem;margin:4px 0 0;}",
+    "#tab-bracket .lkb-scroll{display:flex;flex-direction:row;gap:14px;overflow-x:auto;padding:6px 4px 10px;-webkit-overflow-scrolling:touch;align-items:flex-start;}",
+    "#tab-bracket .lkb-col{flex:0 0 auto;width:190px;display:flex;flex-direction:column;gap:10px;}",
+    "#tab-bracket .lkb-round{font-family:'Bebas Neue',sans-serif;letter-spacing:1px;color:#F5D000;font-size:1rem;text-align:center;padding:2px 0;border-bottom:1px solid #2a2a2a;}",
+    "#tab-bracket .lkb-tie{display:flex;flex-direction:column;background:#161616;border:1px solid #262626;border-radius:8px;padding:7px 9px;}",
+    "#tab-bracket .lkb-tie.lkb-derby{border-color:#1DE54A;}",
+    "#tab-bracket .lkb-side{display:flex;flex-direction:row;align-items:center;gap:6px;font-size:0.86rem;padding:2px 0;width:100%;min-width:0;}",
+    "#tab-bracket .lkb-side + .lkb-side{border-top:1px solid #202020;}",
+    "#tab-bracket .lkb-team{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}",
+    "#tab-bracket .lkb-tbd{color:#666;font-style:italic;}",
+    "#tab-bracket .lkb-lemon .lkb-team{color:#F5D000;font-weight:700;}",
+    "#tab-bracket .lkb-owner{color:#8f8f8f;font-size:0.62rem;flex:0 0 auto;margin-left:auto;}",
+    "#tab-bracket .lkb-win .lkb-team{font-weight:800;}",
+    "#tab-bracket .lkb-elim{opacity:0.4;}",
+    "#tab-bracket .lkb-elim .lkb-team{position:relative;}",
+    "#tab-bracket .lkb-elim .lkb-team::after{content:'';position:absolute;left:-3%;right:-3%;top:52%;height:2px;background:#FF2D2D;transform:rotate(-7deg);box-shadow:0 0 5px #FF2D2D;}",
+    "#tab-bracket .lkb-elim-derby .lkb-team{position:relative;}",
+    "#tab-bracket .lkb-elim-derby .lkb-team::after{content:'';position:absolute;left:-3%;right:-3%;top:52%;height:2px;background:#FF2D2D;transform:rotate(-7deg);box-shadow:0 0 5px #FF2D2D;}",
+    "#tab-bracket .lkb-squeeze{flex:0 0 auto;margin-left:8px;color:#FF2D2D;border:1.5px solid #FF2D2D;font-family:'Bebas Neue',sans-serif;font-size:0.62rem;letter-spacing:0.5px;line-height:1.35;padding:0 5px;border-radius:3px;white-space:nowrap;}",
+    "#tab-bracket .lkb-meta{margin-top:5px;text-align:center;font-size:0.74rem;color:#ddd;font-weight:700;}",
+    "#tab-bracket .lkb-meta.lkb-pending{color:#8f8f8f;font-weight:400;}",
+    "#tab-bracket .lkb-xtra{color:#8f8f8f;font-weight:400;font-size:0.64rem;}",
+    "#tab-bracket .lkb-empty{color:#8f8f8f;padding:20px;text-align:center;}"
+    ].join('\n');
     const tag = document.createElement('style');
-    tag.id = 'bk-style';
+    tag.id = 'lkb-style';
     tag.textContent = css;
     document.head.appendChild(tag);
   }
@@ -156,16 +152,16 @@
     const tabBtn = document.getElementById('tab-btn-bracket');
     const panel = document.getElementById('tab-bracket');
     if (!panel) return;
-    if (tabBtn) tabBtn.style.display = ''; // unhide the nav button (live for everyone)
+    if (tabBtn) tabBtn.style.display = '';
     injectCSS();
-    panel.innerHTML = '<p class="bk-empty">Loading bracket…</p>';
+    panel.innerHTML = '<p class="lkb-empty">Loading bracket…</p>';
     try {
       const res = await fetch(API_URL + '?t=' + Date.now());
       if (!res.ok) throw new Error('feed');
       const data = await res.json();
       render(panel, data.matches || []);
     } catch (e) {
-      panel.innerHTML = '<p class="bk-empty">⚠️ Could not load the bracket. Try refreshing.</p>';
+      panel.innerHTML = '<p class="lkb-empty">⚠️ Could not load the bracket. Try refreshing.</p>';
     }
   }
 
@@ -174,7 +170,5 @@
   } else {
     init();
   }
-
-  // Expose for manual refresh if other code wants it.
   window.LemonBracket = { refresh: init };
 })();
