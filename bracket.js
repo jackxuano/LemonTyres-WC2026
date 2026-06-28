@@ -1,7 +1,9 @@
 // ============================================================
-// LEMON TYRES WC 2026 — KNOCKOUT BRACKET (live, feed-driven)
-// Unique class prefix (lkb-) so NOTHING in style.css can collide.
-// Renders only rounds that have real teams; placeholders show as TBD.
+// LEMON TYRES WC 2026 — KNOCKOUT BRACKET (SVG tree, live feed)
+// Proper non-crossing tree built from feed match numbers + feeders.
+// Mobile: large SVG inside a scroll container → pan + pinch-zoom.
+// Lemon teams highlighted; derbies green; eliminated = strike+fade
+// (derby loser: strike, no fade, + SQUEEZED tag).
 // ============================================================
 (function () {
   const API_URL = 'https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json';
@@ -18,11 +20,11 @@
         return false;
       };
 
-  const ROUND_ORDER = ['Round of 32', 'Round of 16', 'Quarter-final', 'Semi-final', 'Final'];
-  const ROUND_SHORT = {
-    'Round of 32': 'R32', 'Round of 16': 'R16',
-    'Quarter-final': 'QF', 'Semi-final': 'SF', 'Final': 'FINAL'
-  };
+  const ROUND_COL = { 'Round of 32': 0, 'Round of 16': 1, 'Quarter-final': 2, 'Semi-final': 3, 'Final': 4 };
+  const SHORT = { 'Bosnia & Herzegovina': 'Bosnia' };
+
+  const CW = 158, CH = 46, PITCH = 58, TOP = 50, COLW = 202;
+  const colX = c => 10 + c * COLW;
 
   function isPlaceholder(name) {
     if (!name) return true;
@@ -32,12 +34,10 @@
     if (name.includes('/')) return true;
     return false;
   }
-
   function ownersFor(team) {
     if (typeof PLAYERS === 'undefined' || isPlaceholder(team)) return [];
     return PLAYERS.filter(p => _teamsMatch(p.teamCode, team)).map(p => p.name);
   }
-
   function winnerIndex(score) {
     if (!score) return null;
     if (score.ft && score.ft[0] !== score.ft[1]) return score.ft[0] > score.ft[1] ? 0 : 1;
@@ -45,101 +45,149 @@
     if (score.p && score.p[0] !== score.p[1]) return score.p[0] > score.p[1] ? 0 : 1;
     return null;
   }
-
-  function scoreLine(m) {
-    const s = m.score;
-    if (!s || !s.ft) {
-      const t = (typeof convertToMYT === 'function') ? convertToMYT(m.time, m.date) : (m.time || 'TBC');
-      return { text: t, pending: true };
-    }
-    let txt = `${s.ft[0]}\u2013${s.ft[1]}`;
-    if (s.p) txt += ` <span class="lkb-xtra">(pens ${s.p[0]}\u2013${s.p[1]})</span>`;
-    else if (s.et) txt += ` <span class="lkb-xtra">AET</span>`;
-    return { text: txt, pending: false };
-  }
-
-  function esc(str) {
-    return String(str).replace(/[&<>"']/g, c =>
+  function feederNum(t) { const m = /^W(\d+)$/i.exec(t || ''); return m ? parseInt(m[1], 10) : null; }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, c =>
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
-
-  function sideHtml(team, isWinner, isLoser, isDerby, owners) {
-    const ph = isPlaceholder(team);
-    const lemon = owners.length > 0;
-    const cls = ['lkb-side'];
-    if (lemon) cls.push('lkb-lemon');
-    if (isWinner) cls.push('lkb-win');
-    if (isLoser) cls.push(isDerby ? 'lkb-elim-derby' : 'lkb-elim');
-    const label = ph ? 'TBD' : team;
-    const ownerTag = lemon ? `<span class="lkb-owner">${esc(owners.join('/'))}</span>` : '';
-    const stamp = (isLoser && isDerby) ? `<span class="lkb-squeeze">SQUEEZED 🍋</span>` : '';
-    return `<div class="${cls.join(' ')}"><span class="lkb-team${ph ? ' lkb-tbd' : ''}">${esc(label)}</span>${ownerTag}${stamp}</div>`;
+  function shortName(t) { return SHORT[t] || t; }
+  function metaText(m) {
+    const s = m.score;
+    if (s && s.ft) {
+      let t = s.ft[0] + '\u2013' + s.ft[1];
+      if (s.p) t += ' (P ' + s.p[0] + '\u2013' + s.p[1] + ')';
+      else if (s.et) t += ' AET';
+      return t;
+    }
+    if (typeof convertToMYT === 'function' && m.time) return convertToMYT(m.time, m.date);
+    return '';
   }
 
-  function tieHtml(m) {
-    const oA = ownersFor(m.team1), oB = ownersFor(m.team2);
-    const derby = oA.length > 0 && oB.length > 0;
+  function buildLayout(matches) {
+    const ko = matches.filter(m => m.num && ROUND_COL.hasOwnProperty(m.round));
+    const byNum = {};
+    ko.forEach(m => { byNum[m.num] = m; });
+    const root = ko.find(m => m.round === 'Final');
+    if (!root) return null;
+
+    const nodes = [];
+    let leaf = 0;
+    function place(m) {
+      const col = ROUND_COL[m.round];
+      const f1 = feederNum(m.team1), f2 = feederNum(m.team2);
+      let cy;
+      if (m.round === 'Round of 32' || (f1 === null && f2 === null)) {
+        cy = TOP + leaf * PITCH + CH / 2; leaf++;
+      } else {
+        const c1 = byNum[f1] ? place(byNum[f1]) : null;
+        const c2 = byNum[f2] ? place(byNum[f2]) : null;
+        cy = (c1 && c2) ? (c1.cy + c2.cy) / 2 : (TOP + leaf * PITCH + CH / 2);
+      }
+      const node = { m, col, x: colX(col), cy, y: cy - CH / 2, f1, f2 };
+      nodes.push(node);
+      return node;
+    }
+    place(root);
+    const totalH = TOP + leaf * PITCH + 10;
+    const totalW = colX(4) + CW + 10;
+    return { nodes, byNum, totalH, totalW };
+  }
+
+  function nodeSVG(node) {
+    const m = node.m, x = node.x, y = node.y;
+    const teams = [m.team1, m.team2];
+    const owners = teams.map(ownersFor);
+    const derby = owners[0].length > 0 && owners[1].length > 0;
     const w = winnerIndex(m.score);
     const decided = w !== null;
-    const sl = scoreLine(m);
-    const sideA = sideHtml(m.team1, decided && w === 0, decided && w === 1, derby, oA);
-    const sideB = sideHtml(m.team2, decided && w === 1, decided && w === 0, derby, oB);
-    return `<div class="lkb-tie${derby ? ' lkb-derby' : ''}">${sideA}${sideB}<div class="lkb-meta ${sl.pending ? 'lkb-pending' : ''}">${sl.text}</div></div>`;
+    const stroke = derby ? '#1DE54A' : '#2a2a2a';
+    const sw = derby ? 1.5 : 1;
+    let s = '';
+    s += `<rect x="${x}" y="${y}" width="${CW}" height="${CH}" rx="7" fill="#161616" stroke="${stroke}" stroke-width="${sw}"/>`;
+    s += `<line x1="${x + 8}" y1="${y + CH * 0.46}" x2="${x + CW - 8}" y2="${y + CH * 0.46}" stroke="#202020"/>`;
+
+    teams.forEach((tm, k) => {
+      const ph = isPlaceholder(tm);
+      const lemon = owners[k].length > 0;
+      const isWin = decided && w === k;
+      const isLose = decided && w !== k;
+      const ty = y + (k === 0 ? 16 : 32);
+      const label = ph ? 'TBD' : shortName(tm);
+      const fill = ph ? '#555' : (lemon ? '#F5D000' : '#eaeaea');
+      const fw = (lemon && !ph) || isWin ? '700' : '400';
+      const grpOpen = (isLose && !derby) ? `<g opacity="0.4">` : '';
+      const grpClose = (isLose && !derby) ? `</g>` : '';
+      s += grpOpen;
+      s += `<text x="${x + 8}" y="${ty}" fill="${fill}" font-size="11" font-weight="${fw}"${ph ? ' font-style="italic"' : ''}>${esc(label)}</text>`;
+      // owner tag OR squeezed tag at right
+      if (isLose && derby) {
+        s += `<rect x="${x + CW - 56}" y="${ty - 9}" width="50" height="12" rx="2.5" fill="none" stroke="#FF2D2D" stroke-width="1"/>`;
+        s += `<text x="${x + CW - 31}" y="${ty}" fill="#FF2D2D" font-family="Bebas Neue,sans-serif" font-size="9" letter-spacing="0.4" text-anchor="middle">SQUEEZED</text>`;
+      } else if (lemon && !ph) {
+        s += `<text x="${x + CW - 6}" y="${ty}" fill="#8f8f8f" font-size="7.5" text-anchor="end">${esc(owners[k].join('/'))}</text>`;
+      }
+      // strike-through for any loser
+      if (isLose) {
+        s += `<line x1="${x + 6}" y1="${ty - 3.5}" x2="${x + 6 + Math.min(label.length * 6.4, CW - 60)}" y2="${ty - 3.5}" stroke="#FF2D2D" stroke-width="2"/>`;
+      }
+      s += grpClose;
+    });
+    // meta (score or kickoff)
+    const mt = metaText(m);
+    if (mt) {
+      const dim = (m.score && m.score.ft) ? '#ddd' : '#8f8f8f';
+      s += `<text x="${x + CW / 2}" y="${y + CH - 6}" fill="${dim}" font-size="9" text-anchor="middle">${esc(mt)}</text>`;
+    }
+    return s;
   }
 
+  function connectors(node, byNum) {
+    if (node.f1 == null && node.f2 == null) return '';
+    let s = '';
+    [node.f1, node.f2].forEach(fn => {
+      const child = byNum[fn] && findNode(fn);
+      if (!child) return;
+      const x1 = child.x + CW, y1 = child.cy;
+      const x2 = node.x, y2 = node.cy;
+      const ex = (x1 + x2) / 2;
+      s += `<path d="M${x1},${y1} H${ex} V${y2} H${x2}" fill="none" stroke="#3a3a3a" stroke-width="1.5"/>`;
+    });
+    return s;
+  }
+
+  let NODES = [];
+  function findNode(num) { return NODES.find(n => n.m.num === num); }
+
   function render(panel, matches) {
-    const ko = matches.filter(m => !m.group && ROUND_ORDER.includes(m.round));
-    const byRound = {};
-    ko.forEach(m => { (byRound[m.round] = byRound[m.round] || []).push(m); });
-
-    // Show every round that exists in the feed — later rounds appear as TBD
-    // placeholders and fill in with real teams as results come through.
-    const liveRounds = ROUND_ORDER.filter(r => byRound[r] && byRound[r].length);
-
-    const cols = liveRounds.map(r => {
-      const ties = byRound[r].map(tieHtml).join('');
-      return `<div class="lkb-col"><div class="lkb-round">${ROUND_SHORT[r] || r}</div>${ties}</div>`;
-    }).join('');
-
+    const layout = buildLayout(matches);
+    if (!layout) { panel.innerHTML = '<p class="lkb-empty">Knockouts haven\'t started yet.</p>'; return; }
+    NODES = layout.nodes;
+    const labels = ['R32', 'R16', 'QF', 'SF', 'FINAL'];
+    let svg = `<svg width="${layout.totalW}" height="${layout.totalH}" viewBox="0 0 ${layout.totalW} ${layout.totalH}" xmlns="http://www.w3.org/2000/svg" font-family="Inter,system-ui,sans-serif">`;
+    labels.forEach((lb, c) => { svg += `<text x="${colX(c) + CW / 2}" y="32" fill="#F5D000" font-family="Bebas Neue,sans-serif" font-size="17" letter-spacing="1" text-anchor="middle">${lb}</text>`; });
+    NODES.forEach(n => { svg += connectors(n, layout.byNum); });
+    NODES.forEach(n => { svg += nodeSVG(n); });
+    svg += `</svg>`;
     panel.innerHTML =
       '<div class="lkb-wrap">' +
         '<div class="lkb-head">' +
           '<h2 class="lkb-title">🍋 KNOCKOUT BRACKET</h2>' +
-          '<p class="lkb-sub">' + (liveRounds.length > 1 ? 'Scroll sideways for later rounds · ' : '') + '🍋 = a Lemon team</p>' +
+          '<p class="lkb-sub">Pinch to zoom · drag to pan · 🍋 = a Lemon team</p>' +
         '</div>' +
-        '<div class="lkb-scroll">' + (cols || '<p class="lkb-empty">Knockouts haven\'t started yet.</p>') + '</div>' +
+        '<div class="lkb-pan">' + svg + '</div>' +
       '</div>';
   }
 
   function injectCSS() {
     if (document.getElementById('lkb-style')) return;
     const css = [
-    "#tab-bracket .lkb-wrap{padding:4px 0 16px;}",
-    "#tab-bracket .lkb-head{padding:0 4px 6px;}",
-    "#tab-bracket .lkb-title{font-family:'Bebas Neue',sans-serif;letter-spacing:1px;color:#F5D000;font-size:1.5rem;margin:0;line-height:1;}",
-    "#tab-bracket .lkb-sub{color:#8f8f8f;font-size:0.7rem;margin:4px 0 0;}",
-    "#tab-bracket .lkb-scroll{display:flex;flex-direction:row;gap:14px;overflow-x:auto;padding:6px 4px 10px;-webkit-overflow-scrolling:touch;align-items:flex-start;}",
-    "#tab-bracket .lkb-col{flex:0 0 auto;width:190px;display:flex;flex-direction:column;gap:10px;}",
-    "#tab-bracket .lkb-round{font-family:'Bebas Neue',sans-serif;letter-spacing:1px;color:#F5D000;font-size:1rem;text-align:center;padding:2px 0;border-bottom:1px solid #2a2a2a;}",
-    "#tab-bracket .lkb-tie{display:flex;flex-direction:column;background:#161616;border:1px solid #262626;border-radius:8px;padding:7px 9px;}",
-    "#tab-bracket .lkb-tie.lkb-derby{border-color:#1DE54A;}",
-    "#tab-bracket .lkb-side{display:flex;flex-direction:row;align-items:center;gap:6px;font-size:0.86rem;padding:2px 0;width:100%;min-width:0;}",
-    "#tab-bracket .lkb-side + .lkb-side{border-top:1px solid #202020;}",
-    "#tab-bracket .lkb-team{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}",
-    "#tab-bracket .lkb-tbd{color:#666;font-style:italic;}",
-    "#tab-bracket .lkb-lemon .lkb-team{color:#F5D000;font-weight:700;}",
-    "#tab-bracket .lkb-owner{color:#8f8f8f;font-size:0.62rem;flex:0 0 auto;margin-left:auto;}",
-    "#tab-bracket .lkb-win .lkb-team{font-weight:800;}",
-    "#tab-bracket .lkb-elim{opacity:0.4;}",
-    "#tab-bracket .lkb-elim .lkb-team{position:relative;}",
-    "#tab-bracket .lkb-elim .lkb-team::after{content:'';position:absolute;left:-3%;right:-3%;top:52%;height:2px;background:#FF2D2D;transform:rotate(-7deg);box-shadow:0 0 5px #FF2D2D;}",
-    "#tab-bracket .lkb-elim-derby .lkb-team{position:relative;}",
-    "#tab-bracket .lkb-elim-derby .lkb-team::after{content:'';position:absolute;left:-3%;right:-3%;top:52%;height:2px;background:#FF2D2D;transform:rotate(-7deg);box-shadow:0 0 5px #FF2D2D;}",
-    "#tab-bracket .lkb-squeeze{flex:0 0 auto;margin-left:8px;color:#FF2D2D;border:1.5px solid #FF2D2D;font-family:'Bebas Neue',sans-serif;font-size:0.62rem;letter-spacing:0.5px;line-height:1.35;padding:0 5px;border-radius:3px;white-space:nowrap;}",
-    "#tab-bracket .lkb-meta{margin-top:5px;text-align:center;font-size:0.74rem;color:#ddd;font-weight:700;}",
-    "#tab-bracket .lkb-meta.lkb-pending{color:#8f8f8f;font-weight:400;}",
-    "#tab-bracket .lkb-xtra{color:#8f8f8f;font-weight:400;font-size:0.64rem;}",
-    "#tab-bracket .lkb-empty{color:#8f8f8f;padding:20px;text-align:center;}"
+      "#tab-bracket .lkb-wrap{padding:4px 0 16px;}",
+      "#tab-bracket .lkb-head{padding:0 4px 6px;}",
+      "#tab-bracket .lkb-title{font-family:'Bebas Neue',sans-serif;letter-spacing:1px;color:#F5D000;font-size:1.5rem;margin:0;line-height:1;}",
+      "#tab-bracket .lkb-sub{color:#8f8f8f;font-size:0.7rem;margin:4px 0 0;}",
+      "#tab-bracket .lkb-pan{overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid #1e1e1e;border-radius:10px;touch-action:pan-x pan-y pinch-zoom;}",
+      "#tab-bracket .lkb-pan svg{display:block;background:#0A0A0A;}",
+      "#tab-bracket .lkb-empty{color:#8f8f8f;padding:20px;text-align:center;}"
     ].join('\n');
     const tag = document.createElement('style');
     tag.id = 'lkb-style';
@@ -164,10 +212,7 @@
     }
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
   window.LemonBracket = { refresh: init };
 })();
