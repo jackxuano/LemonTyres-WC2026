@@ -92,10 +92,9 @@
     const byRound = {};
     ko.forEach(m => { (byRound[m.round] = byRound[m.round] || []).push(m); });
 
-    const liveRounds = ROUND_ORDER.filter(r => {
-      const arr = byRound[r];
-      return arr && arr.some(m => !isPlaceholder(m.team1) || !isPlaceholder(m.team2));
-    });
+    // Show every round that exists in the feed — later rounds appear as TBD
+    // placeholders and fill in with real teams as results come through.
+    const liveRounds = ROUND_ORDER.filter(r => byRound[r] && byRound[r].length);
 
     const cols = liveRounds.map(r => {
       const ties = byRound[r].map(tieHtml).join('');
