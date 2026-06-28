@@ -334,7 +334,7 @@ window.ARCADE = window.ARCADE || { games: [], register(g){ this.games.push(g); }
   }
 
   window.ARCADE.register({
-    id: 'shootout', label: 'Shoot-out', live: true, isNew: true,
+    id: 'shootout', label: 'Shoot-out', live: true,
     build,
     show() {},
     hide() { /* loop self-pauses via offsetParent; nothing required */ }

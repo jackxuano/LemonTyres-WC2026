@@ -23,7 +23,7 @@ window.ARCADE = window.ARCADE || { games: [], register(g){ this.games.push(g); }
 
   function build(container) {
     container.innerHTML =
-      '<h2 class="section-title">Lemon Sprint 🍋💨</h2>' +
+      '<h2 class="section-title">Joker\u2019s Mazy Dribble 🍋</h2>' +
       '<p class="game-tagline">Joker\u2019s off on one of his mazy dribbles. Drag him left/right to weave through the cones \u2014 how many metres can you take him?</p>' +
       '<div class="game-wrap">' +
         '<div class="game-hud"><span class="game-score-label">METRES</span>' +
@@ -209,5 +209,5 @@ window.ARCADE = window.ARCADE || { games: [], register(g){ this.games.push(g); }
     }
   }
 
-  window.ARCADE.register({ id: 'sprint', label: 'Sprint', live: false, build, show, hide });
+  window.ARCADE.register({ id: 'sprint', label: 'Joker Dribble', live: true, isNew: true, build, show, hide });
 })();

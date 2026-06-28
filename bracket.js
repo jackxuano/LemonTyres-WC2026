@@ -1,211 +1,180 @@
 // ============================================================
-// KNOCKOUT BRACKET — PREVIEW ONLY (gated behind ?preview=laksa)
-// Two view styles to compare: A = round columns, B = scrollable tree.
-// Uses SAMPLE teams so layout can be judged before real teams exist.
-// At launch: swap SAMPLE_BRACKET for live feed data + remove the gate.
+// LEMON TYRES WC 2026 — KNOCKOUT BRACKET (live, feed-driven)
+// Renders R32 → Final from the openfootball feed.
+// - Lemon-owned teams highlighted (yellow + owner tag)
+// - Lemon-vs-Lemon ties flagged as derbies
+// - Eliminated teams: red strike-through + fade (default)
+// - Lemon-on-Lemon KO: loser struck-through but NOT faded, plus a
+//   "SQUEEZED 🍋" stamp pinned to the winner's corner (clear of names)
+// Depends on: PLAYERS, teamsMatch?, convertToMYT (from data.js/app.js)
 // ============================================================
-
 (function () {
-  const PREVIEW = new URLSearchParams(location.search).get('preview') === 'laksa';
-  if (!PREVIEW) return; // invisible to everyone without the secret flag
+  const API_URL = 'https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json';
 
-  // Participant teams (highlighted in the bracket)
-  const MINE = ['Portugal','Argentina','Brazil','Spain','England','Netherlands',
-    'Croatia','Japan','Iran','Sweden','Bosnia & Herzegovina','Morocco','Türkiye'];
-  const isMine = t => MINE.some(m => m.toLowerCase().slice(0,5) === (t||'').toLowerCase().slice(0,5));
+  // Reuse global teamsMatch if present; otherwise define a safe local one.
+  const _teamsMatch = (typeof teamsMatch === 'function')
+    ? teamsMatch
+    : function (a, b) {
+        const n = s => (s || '').toLowerCase().replace(/[^a-z]/g, '');
+        const na = n(a), nb = n(b);
+        if (!na || !nb) return false;
+        if (na === nb) return true;
+        if (na.length >= 4 && nb.includes(na)) return true;
+        if (nb.length >= 4 && na.includes(nb)) return true;
+        return false;
+      };
 
-  const FLAG = {
-    Argentina:'🇦🇷',Brazil:'🇧🇷',Spain:'🇪🇸',Portugal:'🇵🇹',England:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',France:'🇫🇷',
-    Netherlands:'🇳🇱',Croatia:'🇭🇷',Germany:'🇩🇪',Japan:'🇯🇵',Iran:'🇮🇷',Sweden:'🇸🇪',Morocco:'🇲🇦',
-    'Türkiye':'🇹🇷',Belgium:'🇧🇪',Uruguay:'🇺🇾',Colombia:'🇨🇴',Mexico:'🇲🇽',USA:'🇺🇸',Senegal:'🇸🇳',
-    Switzerland:'🇨🇭',Denmark:'🇩🇰',Ecuador:'🇪🇨',Nigeria:'🇳🇬','South Korea':'🇰🇷',Australia:'🇦🇺',
-    Norway:'🇳🇴',Egypt:'🇪🇬',Canada:'🇨🇦',Qatar:'🇶🇦',Ghana:'🇬🇭','Bosnia & Herzegovina':'🇧🇦',
+  const ROUND_ORDER = ['Round of 32', 'Round of 16', 'Quarter-final', 'Semi-final', 'Final'];
+  const ROUND_SHORT = {
+    'Round of 32': 'R32', 'Round of 16': 'R16',
+    'Quarter-final': 'QF', 'Semi-final': 'SF', 'Final': 'FINAL'
   };
-  const flag = t => FLAG[t] || '⚽';
 
-  // SAMPLE 32-team bracket. Each match: [teamA, teamB, scoreA, scoreB] (scores
-  // null = not played). Winners are pre-filled so the tree looks alive.
-  const R32 = [
-    ['Argentina','Australia',2,0],['Switzerland','Mexico',1,2],
-    ['Spain','Morocco',0,1],['Portugal','Uruguay',3,1],
-    ['Brazil','Senegal',2,1],['Netherlands','Ecuador',2,0],
-    ['England','Japan',1,0],['France','Nigeria',3,2],
-    ['Germany','Croatia',1,2],['Belgium','Norway',0,1],
-    ['Colombia','Iran',2,1],['Denmark','Sweden',1,2],
-    ['USA','Ghana',2,1],['Qatar','Türkiye',0,1],
-    ['Egypt','South Korea',1,2],['Canada','Bosnia & Herzegovina',1,3],
-  ];
-  // Derive subsequent rounds from winners
-  function winner(m){ return m[2]>m[3] ? m[0] : m[1]; }
-  function buildNextRound(prev){
-    const out=[];
-    for(let i=0;i<prev.length;i+=2){
-      out.push([winner(prev[i]), winner(prev[i+1]), null, null]);
-    }
-    return out;
+  function ownersFor(team) {
+    if (typeof PLAYERS === 'undefined') return [];
+    return PLAYERS.filter(p => _teamsMatch(p.teamCode, team)).map(p => p.name);
   }
-  // Pre-fill scores for a plausible filled bracket (preview realism)
-  function fill(round, results){ results.forEach((r,i)=>{ round[i][2]=r[0]; round[i][3]=r[1]; }); return round; }
 
-  let R16 = buildNextRound(R32);
-  R16 = fill(R16, [[2,1],[1,0],[2,0],[1,2],[3,1],[1,1],[0,2],[2,1]]);
-  // tiebreak: if equal, first team advances (sample only)
-  function winner2(m){ return m[2]>=m[3] ? m[0] : m[1]; }
-  function buildNext2(prev){const out=[];for(let i=0;i<prev.length;i+=2)out.push([winner2(prev[i]),winner2(prev[i+1]),null,null]);return out;}
+  // Who advanced? 90' (ft) decides; if level, ET; if level, penalties.
+  function winnerIndex(score) {
+    if (!score) return null;
+    if (score.ft && score.ft[0] !== score.ft[1]) return score.ft[0] > score.ft[1] ? 0 : 1;
+    if (score.et && score.et[0] !== score.et[1]) return score.et[0] > score.et[1] ? 0 : 1;
+    if (score.p && score.p[0] !== score.p[1]) return score.p[0] > score.p[1] ? 0 : 1;
+    return null;
+  }
 
-  let QF = buildNext2(R16); QF = fill(QF, [[2,1],[1,0],[2,2],[1,3]]);
-  let SF = buildNext2(QF); SF = fill(SF, [[1,0],[2,1]]);
-  let FIN = buildNext2(SF); FIN = fill(FIN, [[2,1]]);
+  function scoreLine(m) {
+    const s = m.score;
+    if (!s || !s.ft) {
+      const t = (typeof convertToMYT === 'function') ? convertToMYT(m.time, m.date) : (m.time || 'TBC');
+      return { text: t, pending: true };
+    }
+    let txt = `${s.ft[0]}–${s.ft[1]}`;
+    if (s.p) txt += ` <span class="bk-xtra">(pens ${s.p[0]}–${s.p[1]})</span>`;
+    else if (s.et) txt += ` <span class="bk-xtra">AET</span>`;
+    return { text: txt, pending: false };
+  }
 
-  const ROUNDS = [
-    { name:'Round of 32', short:'R32', matches:R32 },
-    { name:'Round of 16', short:'R16', matches:R16 },
-    { name:'Quarter-finals', short:'QF', matches:QF },
-    { name:'Semi-finals', short:'SF', matches:SF },
-    { name:'Final', short:'Final', matches:FIN },
-  ];
+  function esc(str) {
+    return String(str).replace(/[&<>"']/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
 
-  // ---- Reveal the preview tab ----
-  document.addEventListener('DOMContentLoaded', initPreview);
-  if (document.readyState !== 'loading') initPreview();
+  function sideHtml(team, isWinner, isLoser, isDerby, owners) {
+    const lemon = owners.length > 0;
+    const cls = ['bk-side'];
+    if (lemon) cls.push('bk-lemon');
+    if (isWinner) cls.push('bk-win');
+    if (isLoser) cls.push(isDerby ? 'bk-elim-derby' : 'bk-elim'); // derby loser: strike, no fade
+    const ownerTag = lemon ? `<span class="bk-owner">${esc(owners.join('/'))}</span>` : '';
+    // SQUEEZED tag sits inline next to the LOSER's owner name (straight, in-frame)
+    const stamp = (isLoser && isDerby) ? `<span class="bk-squeeze">SQUEEZED 🍋</span>` : '';
+    return `<div class="${cls.join(' ')}">
+      <span class="bk-team">${esc(team)}</span>${ownerTag}${stamp}
+    </div>`;
+  }
 
-  let booted = false;
-  function initPreview(){
-    if (booted) return; booted = true;
+  function tieHtml(m) {
+    const oA = ownersFor(m.team1), oB = ownersFor(m.team2);
+    const derby = oA.length > 0 && oB.length > 0;
+    const w = winnerIndex(m.score);
+    const decided = w !== null;
+    const sl = scoreLine(m);
+    const sideA = sideHtml(m.team1, decided && w === 0, decided && w === 1, derby, oA);
+    const sideB = sideHtml(m.team2, decided && w === 1, decided && w === 0, derby, oB);
+    return `<div class="bk-tie${derby ? ' bk-derby' : ''}">
+      ${sideA}
+      ${sideB}
+      <div class="bk-meta ${sl.pending ? 'bk-pending' : ''}">${sl.text}</div>
+    </div>`;
+  }
+
+  function render(panel, matches) {
+    const ko = matches.filter(m => !m.group && ROUND_ORDER.includes(m.round));
+    const byRound = {};
+    ko.forEach(m => { (byRound[m.round] = byRound[m.round] || []).push(m); });
+
+    const cols = ROUND_ORDER.filter(r => byRound[r] && byRound[r].length)
+      .map(r => {
+        const ties = byRound[r].map(tieHtml).join('');
+        return `<div class="bk-col">
+          <div class="bk-round">${ROUND_SHORT[r] || r}</div>
+          ${ties}
+        </div>`;
+      }).join('');
+
+    panel.innerHTML = `
+      <div class="bk-wrap">
+        <div class="bk-head">
+          <h2 class="bk-title">🍋 KNOCKOUT BRACKET</h2>
+          <p class="bk-sub">Scroll sideways for later rounds · 🍋 = a Lemon team</p>
+        </div>
+        <div class="bk-scroll">${cols || '<p class="bk-empty">Knockouts haven\'t started yet.</p>'}</div>
+      </div>`;
+  }
+
+  function injectCSS() {
+    if (document.getElementById('bk-style')) return;
+    const css = `
+    #tab-bracket .bk-wrap{padding:4px 0 16px;}
+    #tab-bracket .bk-head{padding:0 4px 6px;}
+    #tab-bracket .bk-title{font-family:'Bebas Neue',sans-serif;letter-spacing:1px;color:#F5D000;font-size:1.5rem;margin:0;line-height:1;}
+    #tab-bracket .bk-sub{color:#8f8f8f;font-size:0.7rem;margin:4px 0 0;}
+    #tab-bracket .bk-scroll{display:flex;gap:14px;overflow-x:auto;padding:6px 4px 10px;-webkit-overflow-scrolling:touch;}
+    #tab-bracket .bk-col{flex:0 0 auto;min-width:178px;display:flex;flex-direction:column;gap:10px;}
+    #tab-bracket .bk-round{font-family:'Bebas Neue',sans-serif;letter-spacing:1px;color:#F5D000;font-size:1rem;text-align:center;padding:2px 0;border-bottom:1px solid #2a2a2a;position:sticky;top:0;}
+    #tab-bracket .bk-tie{position:relative;background:#161616;border:1px solid #262626;border-radius:8px;padding:7px 9px;overflow:hidden;}
+    #tab-bracket .bk-tie.bk-derby{border-color:#1DE54A;}
+    #tab-bracket .bk-side{position:relative;display:flex;align-items:center;gap:6px;font-size:0.86rem;padding:2px 0;white-space:nowrap;overflow:hidden;}
+    #tab-bracket .bk-side + .bk-side{border-top:1px solid #202020;}
+    #tab-bracket .bk-team{overflow:hidden;text-overflow:ellipsis;}
+    #tab-bracket .bk-lemon .bk-team{color:#F5D000;font-weight:700;}
+    #tab-bracket .bk-owner{color:#8f8f8f;font-size:0.62rem;flex:0 0 auto;}
+    #tab-bracket .bk-win .bk-team{font-weight:800;}
+    /* default eliminated: strike + fade */
+    #tab-bracket .bk-elim{opacity:0.4;}
+    #tab-bracket .bk-elim .bk-team{position:relative;}
+    #tab-bracket .bk-elim .bk-team::after{content:'';position:absolute;left:-3%;right:-3%;top:52%;height:2px;background:#FF2D2D;transform:rotate(-7deg);box-shadow:0 0 5px #FF2D2D;}
+    /* derby loser: strike but NO fade (name stays readable under stamp) */
+    #tab-bracket .bk-elim-derby .bk-team{position:relative;}
+    #tab-bracket .bk-elim-derby .bk-team::after{content:'';position:absolute;left:-3%;right:-3%;top:52%;height:2px;background:#FF2D2D;transform:rotate(-7deg);box-shadow:0 0 5px #FF2D2D;}
+    /* derby loser: strike (no fade) + inline straight SQUEEZED tag */
+    #tab-bracket .bk-squeeze{flex:0 0 auto;margin-left:auto;color:#FF2D2D;border:1.5px solid #FF2D2D;font-family:'Bebas Neue',sans-serif;font-size:0.62rem;letter-spacing:0.5px;line-height:1.3;padding:0 5px;border-radius:3px;white-space:nowrap;}
+    #tab-bracket .bk-meta{margin-top:5px;text-align:center;font-size:0.74rem;color:#ddd;font-weight:700;}
+    #tab-bracket .bk-meta.bk-pending{color:#8f8f8f;font-weight:400;}
+    #tab-bracket .bk-xtra{color:#8f8f8f;font-weight:400;font-size:0.64rem;}
+    #tab-bracket .bk-empty{color:#8f8f8f;padding:20px;text-align:center;}
+    `;
+    const tag = document.createElement('style');
+    tag.id = 'bk-style';
+    tag.textContent = css;
+    document.head.appendChild(tag);
+  }
+
+  async function init() {
     const tabBtn = document.getElementById('tab-btn-bracket');
     const panel = document.getElementById('tab-bracket');
-    if (!tabBtn || !panel) return;
-    tabBtn.style.display = '';
-    renderBracketPanel(panel);
-  }
-
-  function renderBracketPanel(panel){
-    panel.innerHTML = `
-      <div class="bk-previewbar">PREVIEW · sample teams · only you can see this</div>
-      <h2 class="section-title">Knockout Tree</h2>
-      <div id="bk-body"></div>
-    `;
-    const body = panel.querySelector('#bk-body');
-    renderTree(body);
-  }
-
-  // small match-card HTML (shared)
-  function matchCard(m){
-    const [a,b,sa,sb]=m;
-    const played = sa!==null;
-    const aWin = played && sa>sb, bWin = played && sb>sa;
-    return `
-      <div class="bk-card">
-        <div class="bk-row ${isMine(a)?'mine':''} ${aWin?'win':''}">
-          <span class="bk-flag">${flag(a)}</span>
-          <span class="bk-team">${a}</span>
-          <span class="bk-score">${played?sa:''}</span>
-        </div>
-        <div class="bk-row ${isMine(b)?'mine':''} ${bWin?'win':''}">
-          <span class="bk-flag">${flag(b)}</span>
-          <span class="bk-team">${b}</span>
-          <span class="bk-score">${played?sb:''}</span>
-        </div>
-      </div>`;
-  }
-
-  // ---- Bracket tree: horizontal scrollable, connecting lines + zoom ----
-  let zoom = 0.62;
-  function renderTree(body){
-    const CARD_W=128, CARD_H=52, COL_GAP=46, V_GAP=14;
-    const n32 = R32.length;
-    const slotH = CARD_H + V_GAP;            // vertical pitch of an R32 card
-    const totalH = n32*slotH;                 // full bracket height (R32 defines it)
-    const colW = CARD_W + COL_GAP;
-
-    // y-centre of each match in each round
-    const centers = [];
-    centers[0] = R32.map((_,i)=> i*slotH + slotH/2);
-    for (let r=1; r<ROUNDS.length; r++){
-      centers[r] = [];
-      for (let i=0;i<ROUNDS[r].matches.length;i++){
-        const c1=centers[r-1][i*2], c2=centers[r-1][i*2+1];
-        centers[r].push((c1+c2)/2);
-      }
+    if (!panel) return;
+    if (tabBtn) tabBtn.style.display = ''; // unhide the nav button (live for everyone)
+    injectCSS();
+    panel.innerHTML = '<p class="bk-empty">Loading bracket…</p>';
+    try {
+      const res = await fetch(API_URL + '?t=' + Date.now());
+      if (!res.ok) throw new Error('feed');
+      const data = await res.json();
+      render(panel, data.matches || []);
+    } catch (e) {
+      panel.innerHTML = '<p class="bk-empty">⚠️ Could not load the bracket. Try refreshing.</p>';
     }
-    const totalW = ROUNDS.length*colW;
-
-    // build cards (absolute positioned) + SVG connectors
-    let cards='';
-    ROUNDS.forEach((round,r)=>{
-      const x = r*colW;
-      round.matches.forEach((m,i)=>{
-        const cy = centers[r][i];
-        cards += `<div class="bk-tcard" style="left:${x}px;top:${cy-CARD_H/2}px;width:${CARD_W}px">${matchCard(m)}</div>`;
-      });
-    });
-    // connectors: from each match right edge to its child left edge
-    let lines='';
-    for (let r=0;r<ROUNDS.length-1;r++){
-      const x1 = r*colW + CARD_W;
-      const x2 = (r+1)*colW;
-      const xm = (x1+x2)/2;
-      ROUNDS[r].matches.forEach((m,i)=>{
-        const y1 = centers[r][i];
-        const childIdx = Math.floor(i/2);
-        const y2 = centers[r+1][childIdx];
-        lines += `<path d="M${x1} ${y1} H${xm} V${y2} H${x2}" fill="none" stroke="#5f5e5a" stroke-width="1"/>`;
-      });
-    }
-    // round headers
-    let heads='';
-    ROUNDS.forEach((round,r)=>{
-      heads += `<div class="bk-thead" style="left:${r*colW}px;width:${CARD_W}px">${round.short}</div>`;
-    });
-
-    body.innerHTML = `
-      <div class="bk-zoombar">
-        <button class="bk-zbtn" data-z="out">−</button>
-        <button class="bk-zbtn" data-z="fit">Fit</button>
-        <button class="bk-zbtn" data-z="in">＋</button>
-        <span class="bk-zhint">swipe to pan · pinch or buttons to zoom</span>
-      </div>
-      <div class="bk-scroll" id="bk-scroll">
-        <div class="bk-stage" id="bk-stage" style="width:${totalW}px;height:${totalH+30}px;transform:scale(${zoom});">
-          <div class="bk-heads">${heads}</div>
-          <svg class="bk-lines" width="${totalW}" height="${totalH+30}" style="top:30px">${lines}</svg>
-          <div class="bk-cards" style="top:30px">${cards}</div>
-        </div>
-      </div>`;
-
-    const scroll = body.querySelector('#bk-scroll');
-    const stage = body.querySelector('#bk-stage');
-    function applyZoom(){
-      stage.style.transform = `scale(${zoom})`;
-      stage.style.width = (totalW*zoom)+'px';
-      stage.style.height = ((totalH+30)*zoom)+'px';
-    }
-    applyZoom();
-    body.querySelectorAll('.bk-zbtn').forEach(b=>{
-      b.addEventListener('click', ()=>{
-        const z=b.dataset.z;
-        if(z==='in') zoom=Math.min(1.1, zoom+0.15);
-        else if(z==='out') zoom=Math.max(0.3, zoom-0.15);
-        else { // fit width
-          const avail = scroll.clientWidth - 8;
-          zoom = Math.max(0.3, Math.min(1.1, avail/totalW));
-        }
-        applyZoom();
-      });
-    });
-    // pinch-to-zoom (two-finger)
-    let pinchDist=0, pinchStart=zoom;
-    scroll.addEventListener('touchstart', e=>{
-      if(e.touches.length===2){ pinchDist=dist(e.touches); pinchStart=zoom; }
-    },{passive:true});
-    scroll.addEventListener('touchmove', e=>{
-      if(e.touches.length===2 && pinchDist){
-        const r=dist(e.touches)/pinchDist;
-        zoom=Math.max(0.3, Math.min(1.2, pinchStart*r));
-        applyZoom();
-      }
-    },{passive:true});
-    scroll.addEventListener('touchend', ()=>{ pinchDist=0; });
-    function dist(t){const dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1].clientY; return Math.hypot(dx,dy);}
   }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  // Expose for manual refresh if other code wants it.
+  window.LemonBracket = { refresh: init };
 })();
