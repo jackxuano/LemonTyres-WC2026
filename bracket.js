@@ -63,6 +63,16 @@
     return '';
   }
 
+  // Fixed WC2026 bracket structure (match num -> the two feeder match nums).
+  // Keyed on numbers so it stays correct even after team names resolve.
+  const FEEDERS = {
+    89: [74, 77], 90: [73, 75], 91: [76, 78], 92: [79, 80],
+    93: [83, 84], 94: [81, 82], 95: [86, 88], 96: [85, 87],
+    97: [89, 90], 98: [93, 94], 99: [91, 92], 100: [95, 96],
+    101: [97, 98], 102: [99, 100],
+    104: [101, 102]
+  };
+
   function buildLayout(matches) {
     const ko = matches.filter(m => m.num && ROUND_COL.hasOwnProperty(m.round));
     const byNum = {};
@@ -71,19 +81,21 @@
     if (!root) return null;
 
     const nodes = [];
+    const placed = {};
     let leaf = 0;
     function place(m) {
+      if (placed[m.num]) return placed[m.num];
       const col = ROUND_COL[m.round];
-      const f1 = feederNum(m.team1), f2 = feederNum(m.team2);
+      const fds = FEEDERS[m.num];
       let cy;
-      if (m.round === 'Round of 32' || (f1 === null && f2 === null)) {
+      if (!fds) {                               // leaf (R32)
         cy = TOP + leaf * PITCH + CH / 2; leaf++;
       } else {
-        const c1 = byNum[f1] ? place(byNum[f1]) : null;
-        const c2 = byNum[f2] ? place(byNum[f2]) : null;
-        cy = (c1 && c2) ? (c1.cy + c2.cy) / 2 : (TOP + leaf * PITCH + CH / 2);
+        const kids = fds.map(n => byNum[n] ? place(byNum[n]) : null).filter(Boolean);
+        cy = kids.length ? kids.reduce((s, k) => s + k.cy, 0) / kids.length : (TOP + leaf * PITCH + CH / 2);
       }
-      const node = { m, col, x: colX(col), cy, y: cy - CH / 2, f1, f2 };
+      const node = { m, col, x: colX(col), cy, y: cy - CH / 2, kids: fds || [] };
+      placed[m.num] = node;
       nodes.push(node);
       return node;
     }
@@ -141,11 +153,11 @@
     return s;
   }
 
-  function connectors(node, byNum) {
-    if (node.f1 == null && node.f2 == null) return '';
+  function connectors(node) {
+    if (!node.kids || !node.kids.length) return '';
     let s = '';
-    [node.f1, node.f2].forEach(fn => {
-      const child = byNum[fn] && findNode(fn);
+    node.kids.forEach(fn => {
+      const child = findNode(fn);
       if (!child) return;
       const x1 = child.x + CW, y1 = child.cy;
       const x2 = node.x, y2 = node.cy;
@@ -165,7 +177,7 @@
     const labels = ['R32', 'R16', 'QF', 'SF', 'FINAL'];
     let svg = `<svg width="${layout.totalW}" height="${layout.totalH}" viewBox="0 0 ${layout.totalW} ${layout.totalH}" xmlns="http://www.w3.org/2000/svg" font-family="Inter,system-ui,sans-serif">`;
     labels.forEach((lb, c) => { svg += `<text x="${colX(c) + CW / 2}" y="32" fill="#F5D000" font-family="Bebas Neue,sans-serif" font-size="17" letter-spacing="1" text-anchor="middle">${lb}</text>`; });
-    NODES.forEach(n => { svg += connectors(n, layout.byNum); });
+    NODES.forEach(n => { svg += connectors(n); });
     NODES.forEach(n => { svg += nodeSVG(n); });
     svg += `</svg>`;
     panel.innerHTML =
