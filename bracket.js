@@ -107,7 +107,7 @@
 
   function nodeSVG(node) {
     const m = node.m, x = node.x, y = node.y;
-    const teams = [m.team1, m.team2];
+    const teams = [resolveTeamName(m, 0), resolveTeamName(m, 1)];
     const owners = teams.map(ownersFor);
     const derby = owners[0].length > 0 && owners[1].length > 0;
     const w = winnerIndex(m.score);
@@ -168,12 +168,28 @@
   }
 
   let NODES = [];
+  let BYNUM = {};
   function findNode(num) { return NODES.find(n => n.m.num === num); }
+
+  // Resolve a card's team name ourselves from the feeder match's result,
+  // instead of waiting for the feed to propagate "W##" -> real name.
+  function resolveTeamName(m, side) {
+    const raw = side === 0 ? m.team1 : m.team2;
+    if (!isPlaceholder(raw)) return raw;      // feed already resolved it
+    const fds = FEEDERS[m.num];
+    if (!fds) return raw;
+    const fm = BYNUM[fds[side]];
+    if (!fm) return 'TBD';
+    const w = winnerIndex(fm.score);
+    if (w === null) return 'TBD';             // feeder not decided yet
+    return resolveTeamName(fm, w);            // recurse up the tree
+  }
 
   function render(panel, matches) {
     const layout = buildLayout(matches);
     if (!layout) { panel.innerHTML = '<p class="lkb-empty">Knockouts haven\'t started yet.</p>'; return; }
     NODES = layout.nodes;
+    BYNUM = layout.byNum;
     const labels = ['R32', 'R16', 'QF', 'SF', 'FINAL'];
     let svg = `<svg width="${layout.totalW}" height="${layout.totalH}" viewBox="0 0 ${layout.totalW} ${layout.totalH}" xmlns="http://www.w3.org/2000/svg" font-family="Inter,system-ui,sans-serif">`;
     labels.forEach((lb, c) => { svg += `<text x="${colX(c) + CW / 2}" y="32" fill="#F5D000" font-family="Bebas Neue,sans-serif" font-size="17" letter-spacing="1" text-anchor="middle">${lb}</text>`; });
