@@ -168,27 +168,43 @@ function processHeroGoals() {
   // Build a tally per hero name (surname-matched)
   const heroTally = {}; // heroKey -> goal count
 
-  // Map each unique hero to a normalized surname key
+  // Map each unique hero to its owning players
   const heroKeys = {};
   PLAYERS.forEach(p => {
     const key = heroNameKey(p.hero);
     heroKeys[p.hero] = key;
     if (!(key in heroTally)) heroTally[key] = 0;
   });
+  // hero full-name key -> nation (for single-word fallback matching)
+  const heroNations = {};
+  PLAYERS.forEach(p => { heroNations[heroKeys[p.hero]] = p.heroNation; });
 
   allMatches.forEach(m => {
     if (!m.score || !m.score.ft) return; // only finished matches
-    const goals = [...(m.goals1 || []), ...(m.goals2 || [])];
-    goals.forEach(goal => {
+    // keep track of WHICH team each goal belongs to (needed for fallback)
+    const goals = [
+      ...(m.goals1 || []).map(g => ({ g, team: m.team1 })),
+      ...(m.goals2 || []).map(g => ({ g, team: m.team2 })),
+    ];
+    goals.forEach(({ g: goal, team }) => {
       if (!goal || !goal.name) return;
       if (goal.owngoal || goal.og) return; // own goals don't count for the hero
-      const scorerKey = heroNameKey(goal.name);
-      // Match scorer to any hero with the same surname key
-      for (const key of Object.values(heroKeys)) {
-        if (key && scorerKey && key === scorerKey) {
-          heroTally[key]++;
-          break;
+      const scorerFull = fullNameKey(goal.name);
+      const scorerWords = scorerFull.split(' ').length;
+      for (const heroFull of Object.keys(heroKeys)) {
+        const heroKey = heroKeys[heroFull];
+        const heroFullNorm = fullNameKey(heroFull);
+        let hit = false;
+        if (scorerWords >= 2) {
+          // FULL-NAME match: "lautaro martinez" === "lautaro martinez",
+          // but "lisandro martinez" does NOT match. Fixes same-surname clashes.
+          hit = (scorerFull === heroFullNorm);
+        } else {
+          // Feed gave a single word (e.g. "Ronaldo"): surname match is only
+          // trusted if the scoring TEAM is the hero's nation.
+          hit = (heroNameKey(goal.name) === heroKey) && teamsMatch(heroNations[heroKey] || '', team);
         }
+        if (hit) { heroTally[heroKey]++; break; }
       }
     });
   });
@@ -198,6 +214,14 @@ function processHeroGoals() {
     const key = heroKeys[p.hero];
     if (key in heroTally) p.heroGoals = heroTally[key];
   });
+}
+
+// Normalize a FULL name for exact matching: lowercase, strip accents,
+// collapse whitespace. "Lautaro Martínez" -> "lautaro martinez".
+function fullNameKey(fullName) {
+  if (!fullName) return '';
+  return fullName.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/[^a-z\s]/g, '').trim().replace(/\s+/g, ' ');
 }
 
 // Normalize a player name to a matchable surname key:
@@ -276,15 +300,21 @@ function rankFor(matches) {
       else if (mine === opp) tp[player.teamCode] += s.draw;
     });
   });
-  // hero goals by key
-  const hg = {}, heroKeys = {};
-  PLAYERS.forEach(p => { const k = heroNameKey(p.hero); heroKeys[p.hero] = k; if (!(k in hg)) hg[k] = 0; });
+  // hero goals by key (FULL-name match; single-word fallback needs nation)
+  const hg = {}, heroKeys = {}, hNations = {};
+  PLAYERS.forEach(p => { const k = heroNameKey(p.hero); heroKeys[p.hero] = k; hNations[k] = p.heroNation; if (!(k in hg)) hg[k] = 0; });
   matches.forEach(m => {
     if (!m.score || !m.score.ft) return;
-    [...(m.goals1 || []), ...(m.goals2 || [])].forEach(g => {
+    [...(m.goals1 || []).map(g => ({ g, team: m.team1 })), ...(m.goals2 || []).map(g => ({ g, team: m.team2 }))].forEach(({ g, team }) => {
       if (!g || !g.name || g.owngoal || g.og) return;
-      const sk = heroNameKey(g.name);
-      for (const k of Object.values(heroKeys)) { if (k && sk && k === sk) { hg[k]++; break; } }
+      const sf = fullNameKey(g.name);
+      for (const heroFull of Object.keys(heroKeys)) {
+        const k = heroKeys[heroFull];
+        let hit = false;
+        if (sf.split(' ').length >= 2) hit = (sf === fullNameKey(heroFull));
+        else hit = (heroNameKey(g.name) === k) && teamsMatch(hNations[k] || '', team);
+        if (hit) { hg[k]++; break; }
+      }
     });
   });
   const arr = PLAYERS.map(p => {
