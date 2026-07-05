@@ -123,16 +123,18 @@
       const lemon = owners[k].length > 0;
       const isWin = decided && w === k;
       const isLose = decided && w !== k;
+      const squeezed = isLose && lemon;          // any Lemon knocked out gets stamped
+      const fadeLose = isLose && !lemon;         // non-Lemon losers just fade
       const ty = y + (k === 0 ? 16 : 32);
       const label = ph ? 'TBD' : shortName(tm);
       const fill = ph ? '#555' : (lemon ? '#F5D000' : '#eaeaea');
       const fw = (lemon && !ph) || isWin ? '700' : '400';
-      const grpOpen = (isLose && !derby) ? `<g opacity="0.4">` : '';
-      const grpClose = (isLose && !derby) ? `</g>` : '';
+      const grpOpen = fadeLose ? `<g opacity="0.4">` : '';
+      const grpClose = fadeLose ? `</g>` : '';
       s += grpOpen;
       s += `<text x="${x + 8}" y="${ty}" fill="${fill}" font-size="11" font-weight="${fw}"${ph ? ' font-style="italic"' : ''}>${esc(label)}</text>`;
-      // owner tag OR squeezed tag at right
-      if (isLose && derby) {
+      // SQUEEZED stamp for an eliminated Lemon, else owner tag
+      if (squeezed) {
         s += `<rect x="${x + CW - 56}" y="${ty - 9}" width="50" height="12" rx="2.5" fill="none" stroke="#FF2D2D" stroke-width="1"/>`;
         s += `<text x="${x + CW - 31}" y="${ty}" fill="#FF2D2D" font-family="Bebas Neue,sans-serif" font-size="9" letter-spacing="0.4" text-anchor="middle">SQUEEZED</text>`;
       } else if (lemon && !ph) {
