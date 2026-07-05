@@ -196,14 +196,28 @@
     NODES.forEach(n => { svg += connectors(n); });
     NODES.forEach(n => { svg += nodeSVG(n); });
     svg += `</svg>`;
+    const jump = '<div class="lkb-jump">' +
+      labels.map((lb, c) => '<button class="lkb-jump-btn' + (c === 0 ? ' on' : '') + '" data-col="' + c + '">' + lb + '</button>').join('') +
+      '</div>';
     panel.innerHTML =
       '<div class="lkb-wrap">' +
         '<div class="lkb-head">' +
           '<h2 class="lkb-title">🍋 KNOCKOUT BRACKET</h2>' +
           '<p class="lkb-sub">Pinch to zoom · drag to pan · 🍋 = a Lemon team</p>' +
         '</div>' +
+        jump +
         '<div class="lkb-pan">' + svg + '</div>' +
       '</div>';
+    // round-jump buttons: scroll the pan to that column
+    const pan = panel.querySelector('.lkb-pan');
+    panel.querySelectorAll('.lkb-jump-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const c = parseInt(btn.dataset.col, 10);
+        pan.scrollTo({ left: Math.max(0, colX(c) - 14), behavior: 'smooth' });
+        panel.querySelectorAll('.lkb-jump-btn').forEach(b => b.classList.remove('on'));
+        btn.classList.add('on');
+      });
+    });
   }
 
   function injectCSS() {
@@ -213,6 +227,9 @@
       "#tab-bracket .lkb-head{padding:0 4px 6px;}",
       "#tab-bracket .lkb-title{font-family:'Bebas Neue',sans-serif;letter-spacing:1px;color:#F5D000;font-size:1.5rem;margin:0;line-height:1;}",
       "#tab-bracket .lkb-sub{color:#8f8f8f;font-size:0.7rem;margin:4px 0 0;}",
+      "#tab-bracket .lkb-jump{display:flex;gap:5px;padding:0 4px 8px;}",
+      "#tab-bracket .lkb-jump-btn{flex:1;background:#161616;border:1px solid #2a2a2a;color:#8f8f8f;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;font-size:0.82rem;padding:6px 0;border-radius:8px;cursor:pointer;-webkit-tap-highlight-color:transparent;}",
+      "#tab-bracket .lkb-jump-btn.on{background:#F5D000;color:#111;border-color:#F5D000;}",
       "#tab-bracket .lkb-pan{overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid #1e1e1e;border-radius:10px;touch-action:pan-x pan-y pinch-zoom;}",
       "#tab-bracket .lkb-pan svg{display:block;background:#0A0A0A;}",
       "#tab-bracket .lkb-empty{color:#8f8f8f;padding:20px;text-align:center;}"
