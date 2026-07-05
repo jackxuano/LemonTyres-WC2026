@@ -209,5 +209,5 @@ window.ARCADE = window.ARCADE || { games: [], register(g){ this.games.push(g); }
     }
   }
 
-  window.ARCADE.register({ id: 'sprint', label: 'Joker Dribble', live: true, isNew: true, build, show, hide });
+  window.ARCADE.register({ id: 'sprint', label: 'Joker Dribble', live: true, build, show, hide });
 })();

@@ -989,8 +989,8 @@ body {
 .arc-nav { display: flex; gap: 3px; background: var(--bg3); border: 1px solid var(--border); border-radius: 12px; padding: 4px; margin-bottom: 1.1rem; }
 .arc-btn {
   flex: 1 1 0; min-width: 0; white-space: nowrap; background: none; border: none; color: var(--text-dim);
-  font-family: 'Bebas Neue', sans-serif; font-size: 0.8rem; letter-spacing: 0.2px;
-  padding: 0.5rem 0.2rem; border-radius: 8px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  font-family: 'Bebas Neue', sans-serif; font-size: 0.72rem; letter-spacing: 0.1px;
+  padding: 0.45rem 0.15rem; border-radius: 8px; cursor: pointer; -webkit-tap-highlight-color: transparent;
   display: inline-flex; align-items: center; justify-content: center; gap: 4px; line-height: 1;
 }
 .arc-btn.active { background: var(--yellow); color: #111; }
