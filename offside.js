@@ -15,7 +15,7 @@ window.ARCADE = window.ARCADE || { games: [], register(g){ this.games.push(g); }
   function build(container) {
     container.innerHTML = `
       <h2 class="section-title">Offside King \u6293\u9e21\u738b \ud83d\udc14</h2>
-      <p class="game-tagline">Our resident \u6293\u9e21\u738b lives on the last defender\u2019s shoulder. Tap while it shows <b style="color:#1DE54A">ONSIDE \u2713</b> to spring the trap and tap home another cheeky chicken \ud83d\udc14. Flag goes up? Classic Jacko. Dawdle on the ball and the presser takes it off you \u2014 \u72b9\u8c6b\u5c31\u4f1a\u8d25\u5317.</p>
+      <p class="game-tagline">Our resident \u6293\u9e21\u738b lives on the last defender\u2019s shoulder. Tap while it shows <b style="color:#1DE54A">ONSIDE \u2713</b> to spring the trap and tap home another cheeky chicken \ud83d\udc14. Flag goes up? Classic Jacko. Dawdle on the ball and the presser takes it off you \u2014 \u624b\u5feb\u6709\u624b\u6162\u65e0.</p>
       <div class="game-wrap">
         <div class="game-hud">
           <span class="game-score-label">CHICKENS</span>
@@ -102,7 +102,7 @@ window.ARCADE = window.ARCADE || { games: [], register(g){ this.games.push(g); }
         subEl.textContent = '\u6293\u9e21\u738b does it again \ud83d\ude02 Chickens: ' + chickens;
       } else {
         titleEl.textContent = 'DISPOSSESSED! \ud83d\ude05';
-        subEl.textContent = '\u72b9\u8c6b\u5c31\u4f1a\u8d25\u5317 \u2014 pressed off it. Chickens: ' + chickens;
+        subEl.textContent = '\u624b\u5feb\u6709\u624b\u6162\u65e0 \u2014 pressed off it. Chickens: ' + chickens;
       }
       startBtn.textContent = '\u25b6 Go again';
       overlay.style.display = 'flex';
@@ -146,7 +146,8 @@ window.ARCADE = window.ARCADE || { games: [], register(g){ this.games.push(g); }
       ctx.fillStyle = '#141414';
       ctx.beginPath(); ctx.arc(x - 6 + sh, y + 28, 4, 0, 7); ctx.fill();
       ctx.beginPath(); ctx.arc(x + 6 - sh, y + 28, 4, 0, 7); ctx.fill();
-      ctx.fillStyle = kit || '#4a6edc'; rr(x - 9, y - 6, 18, 20, 5); ctx.fill();
+      ctx.fillStyle = kit || '#EAC31C'; rr(x - 9, y - 6, 18, 20, 5); ctx.fill();
+      ctx.fillStyle = '#1a2a5c'; ctx.fillRect(x - 9, y + 11, 18, 4);
       ctx.fillStyle = '#f2c89a'; ctx.beginPath(); ctx.arc(x, y - 13, 7, 0, 7); ctx.fill();
     }
     function drawRed(x, y, mode, isJacko) {
@@ -226,12 +227,12 @@ window.ARCADE = window.ARCADE || { games: [], register(g){ this.games.push(g); }
       ctx.save(); ctx.translate(kx, 108); ctx.rotate(krot);
       ctx.fillStyle = '#f2a030'; rr(-9, -10, 18, 20, 5); ctx.fill();
       if (keeperOk) {
-        ctx.save(); ctx.beginPath(); ctx.arc(0, -17, 9, 0, 7); ctx.clip();
-        ctx.drawImage(keeperImg, -9, -26, 18, 18); ctx.restore();
+        ctx.save(); ctx.beginPath(); ctx.arc(0, -25, 17, 0, 7); ctx.clip();
+        ctx.drawImage(keeperImg, -17, -42, 34, 34); ctx.restore();
         ctx.strokeStyle = '#f2a030'; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.arc(0, -17, 9, 0, 7); ctx.stroke();
+        ctx.beginPath(); ctx.arc(0, -25, 17, 0, 7); ctx.stroke();
       } else {
-        ctx.fillStyle = '#f2c89a'; ctx.beginPath(); ctx.arc(0, -16, 7, 0, 7); ctx.fill();
+        ctx.fillStyle = '#f2c89a'; ctx.beginPath(); ctx.arc(0, -20, 11, 0, 7); ctx.fill();
       }
       ctx.restore();
       const onside = lineY < JY;
@@ -244,7 +245,7 @@ window.ARCADE = window.ARCADE || { games: [], register(g){ this.games.push(g); }
         ball(PX + 13 + Math.sin(bob * 3) * 3, PY + 26, 7);
         drawRed(JX, JY, 'idle', true);
         if (playing && !over) {
-          drawDefender(pressX, PY - 2, '#1c1c1c');
+          drawDefender(pressX, PY - 2, '#EAC31C');
           if (pressX - PX < 70) {
             ctx.strokeStyle = 'rgba(255,45,45,0.5)'; ctx.lineWidth = 2;
             ctx.beginPath(); ctx.arc(PX, PY, 34 + Math.sin(bob * 6) * 3, 0, 7); ctx.stroke();
@@ -266,7 +267,7 @@ window.ARCADE = window.ARCADE || { games: [], register(g){ this.games.push(g); }
           drawRed(cx2 - 16, cy2 + 6, 'run', true);
           ball(cx2, cy2, 7 - 2 * k);
         }
-        drawDefender(pressX, PY - 2, '#1c1c1c');
+        drawDefender(pressX, PY - 2, '#EAC31C');
       }
       drawLinesman(330, 300, over && overKind === 'flag');
       const pw = 104;
