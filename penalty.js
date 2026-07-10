@@ -264,7 +264,19 @@ window.ARCADE = window.ARCADE || { games: [], register(g){ this.games.push(g); }
       ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.stroke();
       ctx.restore();
     }
+    const pkBallImg = new Image(); let pkBallOk = false;
+    pkBallImg.onload = () => { pkBallOk = true; };
+    pkBallImg.src = 'logo.jpeg';
     function drawLemon(x, y, r) {
+      if (pkBallOk) {
+        ctx.save();
+        ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.clip();
+        ctx.drawImage(pkBallImg, x - r, y - r, r * 2, r * 2);
+        ctx.restore();
+        ctx.strokeStyle = '#b49600'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.stroke();
+        return;
+      }
       ctx.save(); ctx.translate(x, y);
       ctx.fillStyle = '#F5C400';
       ctx.beginPath(); ctx.ellipse(0, 0, r * 1.02, r * 0.92, 0, 0, 7); ctx.fill();

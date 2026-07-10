@@ -317,7 +317,7 @@ window.ARCADE = window.ARCADE || { games: [], register(g){ this.games.push(g); }
   }
 
   window.ARCADE.register({
-    id: 'volley', label: 'Kapitan\u2019s Volley', live: true, isNew: true,
+    id: 'volley', label: 'Kapitan\u2019s Volley', live: true,
     build,
     show() {},
     hide() { /* loop self-pauses via offsetParent; nothing required */ }
