@@ -20,7 +20,11 @@
         return false;
       };
 
-  const ROUND_COL = { 'Round of 32': 0, 'Round of 16': 1, 'Quarter-final': 2, 'Semi-final': 3, 'Final': 4 };
+  const ROUND_COL = { 'Round of 32': 0, 'Round of 16': 1, 'Quarter-final': 2, 'Semi-final': 3, 'Final': 4,
+                      'Match for third place': 4, 'Third-place play-off': 4, 'Third place play-off': 4 };
+  const THIRD_ROUNDS = ['Match for third place', 'Third-place play-off', 'Third place play-off'];
+  // The 3rd-place match is fed by the LOSERS of the semis (L101 / L102).
+  const LOSER_FEEDERS = { 103: [101, 102] };
   const SHORT = { 'Bosnia & Herzegovina': 'Bosnia' };
 
   const CW = 158, CH = 46, PITCH = 58, TOP = 50, COLW = 202;
@@ -100,7 +104,16 @@
       return node;
     }
     place(root);
-    const totalH = TOP + leaf * PITCH + 10;
+    // detached 3rd-place card, sits below the Final (no connectors — real brackets show it apart)
+    const third = matches.find(m => THIRD_ROUNDS.includes(m.round));
+    let totalH = TOP + leaf * PITCH + 10;
+    if (third) {
+      const fin = nodes.find(n => n.m.num === root.num);
+      const tcy = (fin ? fin.cy : TOP + 60) + 92;
+      const tnode = { m: third, col: 4, x: colX(4), cy: tcy, y: tcy - CH / 2, kids: [], isThird: true };
+      nodes.push(tnode);
+      totalH = Math.max(totalH, tcy + CH / 2 + 24);
+    }
     const totalW = colX(4) + CW + 10;
     return { nodes, byNum, totalH, totalW };
   }
@@ -178,6 +191,15 @@
   function resolveTeamName(m, side) {
     const raw = side === 0 ? m.team1 : m.team2;
     if (!isPlaceholder(raw)) return raw;      // feed already resolved it
+    // 3rd-place match: L101 / L102 = the LOSERS of the semis
+    const lfds = LOSER_FEEDERS[m.num];
+    if (lfds) {
+      const fm = BYNUM[lfds[side]];
+      if (!fm) return 'TBD';
+      const w = winnerIndex(fm.score);
+      if (w === null) return 'TBD';           // semi not decided yet
+      return resolveTeamName(fm, w === 0 ? 1 : 0);   // the other side = loser
+    }
     const fds = FEEDERS[m.num];
     if (!fds) return raw;
     const fm = BYNUM[fds[side]];
@@ -196,6 +218,10 @@
     let svg = `<svg width="${layout.totalW}" height="${layout.totalH}" viewBox="0 0 ${layout.totalW} ${layout.totalH}" xmlns="http://www.w3.org/2000/svg" font-family="Inter,system-ui,sans-serif">`;
     labels.forEach((lb, c) => { svg += `<text x="${colX(c) + CW / 2}" y="32" fill="#F5D000" font-family="Bebas Neue,sans-serif" font-size="17" letter-spacing="1" text-anchor="middle">${lb}</text>`; });
     NODES.forEach(n => { svg += connectors(n); });
+    const tn = NODES.find(n => n.isThird);
+    if (tn) {
+      svg += `<text x="${tn.x + CW / 2}" y="${tn.y - 8}" fill="#8f8f8f" font-family="Bebas Neue,sans-serif" font-size="12" letter-spacing="1" text-anchor="middle">3RD PLACE</text>`;
+    }
     NODES.forEach(n => { svg += nodeSVG(n); });
     svg += `</svg>`;
     const jump = '<div class="lkb-jump">' +
